@@ -1,21 +1,20 @@
 import { TILE_SIZE, TILE_LEGEND } from "../data/mapData.js";
-import { PLAYER_CONFIG, ENEMY_TYPES } from "../data/spriteConfig.js";
+import {
+  PLAYER_CONFIG, PLAYER_WALK_ROWS, PLAYER_ATTACK_ROWS,
+  ENEMY_TYPES, OCTOROK_WALK_ROWS, FRAME_SIZE,
+} from "../data/spriteConfig.js";
 
 // ============================================================================
 // BOOT SCENE
 // ----------------------------------------------------------------------------
-// Runs once, before anything else. Its only job is to make sure every image
-// the game needs exists as a "texture" before GameScene tries to use it.
+// Runs once, before anything else. It loads the pixel-art sprite sheets,
+// builds the tile/heart textures, defines every animation, and then hands
+// off to GameScene.
 //
-// Instead of loading image files (this.load.image(...)), we DRAW simple
-// shapes with Phaser's Graphics object and bake them into textures. That's
-// what generateTexture() below does. This is why the game has zero asset
-// files and still runs the instant you open index.html.
-//
-// When you're ready to use real drawn art instead, replace the bodies of
-// the functions below with normal Phaser loading, e.g.:
-//   this.load.image("player", "assets/player.png");
-// and call it from preload() instead of create().
+// Tiles and hearts are still simple drawn shapes (Phaser Graphics baked into
+// a texture) — there's no motion to animate there, so there's no need for
+// sprite sheet art yet. Characters (player + enemies), which now walk and
+// swing a sword, load from real 16x16 PNGs in assets/sprites/.
 // ============================================================================
 
 export default class BootScene extends Phaser.Scene {
@@ -23,11 +22,23 @@ export default class BootScene extends Phaser.Scene {
     super("Boot");
   }
 
+  preload() {
+    this.load.spritesheet(PLAYER_CONFIG.key, PLAYER_CONFIG.sheet, {
+      frameWidth: FRAME_SIZE,
+      frameHeight: FRAME_SIZE,
+    });
+    Object.values(ENEMY_TYPES).forEach((cfg) => {
+      this.load.spritesheet(cfg.key, cfg.sheet, {
+        frameWidth: FRAME_SIZE,
+        frameHeight: FRAME_SIZE,
+      });
+    });
+  }
+
   create() {
     this.generateTileTextures();
-    this.generateCharacterTexture(PLAYER_CONFIG);
-    Object.values(ENEMY_TYPES).forEach((cfg) => this.generateCharacterTexture(cfg));
     this.generateHeartTextures();
+    this.createAnimations();
 
     this.scene.start("Game");
   }
@@ -46,28 +57,6 @@ export default class BootScene extends Phaser.Scene {
     });
   }
 
-  // Draws a simple "block person" facing down: a body square, a lighter
-  // face patch, and two eyes, so it's easy to tell which way things face.
-  generateCharacterTexture(cfg) {
-    const s = cfg.size;
-    const g = this.add.graphics();
-
-    g.fillStyle(cfg.bodyColor, 1);
-    g.fillRoundedRect(0, 0, s, s, 4);
-
-    g.lineStyle(2, cfg.outlineColor, 1);
-    g.strokeRoundedRect(0, 0, s, s, 4);
-
-    // two little "eyes" near the top so the sprite has a default facing (down)
-    g.fillStyle(0xffffff, 1);
-    const eyeSize = Math.max(2, Math.round(s * 0.1));
-    g.fillRect(s * 0.28 - eyeSize / 2, s * 0.32, eyeSize, eyeSize);
-    g.fillRect(s * 0.72 - eyeSize / 2, s * 0.32, eyeSize, eyeSize);
-
-    g.generateTexture(cfg.key, s, s);
-    g.destroy();
-  }
-
   // Two small heart textures (full/empty) for the HUD.
   generateHeartTextures() {
     const size = 16;
@@ -83,6 +72,55 @@ export default class BootScene extends Phaser.Scene {
       g.fillTriangle(0, size * 0.35, size, size * 0.35, size * 0.5, size);
       g.generateTexture(key, size, size);
       g.destroy();
+    });
+  }
+
+  // Every animation used in the game is defined once, here, by name.
+  // Player.js and Enemy.js just call sprite.play("player_walk_down") etc.
+  createAnimations() {
+    const DIRS = ["down", "up", "side"];
+
+    DIRS.forEach((dir) => {
+      const row = PLAYER_WALK_ROWS[dir];
+      this.anims.create({
+        key: `player_walk_${dir}`,
+        frames: this.anims.generateFrameNumbers(PLAYER_CONFIG.key, {
+          start: row * 4, end: row * 4 + 3,
+        }),
+        frameRate: PLAYER_CONFIG.walkFrameRate,
+        repeat: -1,
+      });
+    });
+
+    DIRS.forEach((dir) => {
+      const row = PLAYER_ATTACK_ROWS[dir];
+      this.anims.create({
+        key: `player_attack_${dir}`,
+        frames: this.anims.generateFrameNumbers(PLAYER_CONFIG.key, {
+          start: row * 4, end: row * 4 + 3,
+        }),
+        frameRate: PLAYER_CONFIG.attackFrameRate,
+        repeat: 0,
+      });
+    });
+
+    this.anims.create({
+      key: "slime_wobble",
+      frames: this.anims.generateFrameNumbers(ENEMY_TYPES.slime.key, { start: 0, end: 3 }),
+      frameRate: ENEMY_TYPES.slime.animFrameRate,
+      repeat: -1,
+    });
+
+    DIRS.forEach((dir) => {
+      const row = OCTOROK_WALK_ROWS[dir];
+      this.anims.create({
+        key: `octorok_walk_${dir}`,
+        frames: this.anims.generateFrameNumbers(ENEMY_TYPES.octorok.key, {
+          start: row * 4, end: row * 4 + 3,
+        }),
+        frameRate: ENEMY_TYPES.octorok.animFrameRate,
+        repeat: -1,
+      });
     });
   }
 }
