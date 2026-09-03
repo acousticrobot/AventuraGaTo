@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kingdom of Pixeltopia (Prototype)</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #1a1a2e;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Courier New', monospace;
+    }
+    #game-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    #game-container canvas {
+      image-rendering: pixelated;
+      border: 4px solid #4a4a68;
+      border-radius: 4px;
+    }
+    #hint {
+      color: #ccccdd;
+      font-size: 14px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <div id="game"></div>
+    <div id="hint">Arrow keys / WASD to move &nbsp;•&nbsp; Space or Z to swing your sword</div>
+  </div>
+
+  <!-- Phaser 3 is included in lib/ so the game works completely offline —
+       no install step, no CDN, nothing that can break because wifi hiccups. -->
+  <script src="./lib/phaser.min.js"></script>
+
+  <!-- Our game code, loaded as an ES module so we can use import/export -->
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
