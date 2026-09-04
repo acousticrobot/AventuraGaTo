@@ -37,15 +37,20 @@ AventuraGaTo/
         player.png
         slime.png
         octorok.png
+        tiles/
+          grass.png, wall.png, tree.png, water.png, space.png
       gata/               ← ⭐ a THEME — one kid's own art, drawn in Aseprite
         player.png
         player.json          (tells the game which frames are which animation)
+        tiles/
+          space.png           (only overrides this one tile — the rest fall
+                                back to default/)
       <your-name>/        ← ⭐ add one of these per kid — see below!
   src/
     main.js               ← game window setup (size, zoom, physics)
     scenes/
-      BootScene.js        ← picks the theme, loads sprite sheets (with fallback),
-                             draws tiles/hearts, defines animations
+      BootScene.js        ← picks the theme, loads sprite sheets/tiles (with
+                             fallback), draws hearts, defines animations
       GameScene.js        ← builds the room, spawns everyone, runs the main loop
     entities/
       Player.js           ← movement, facing direction, sword swing, health
@@ -65,10 +70,11 @@ to life.
 Open `src/data/mapData.js` in any text editor.
 
 **Redesign the room.** `ROOM_MAP` is just rows of letters — one letter per
-tile. `W` is wall, `.` is grass, `T` is a tree, `~` is water. Draw a new
-room using those four letters (every row has to stay the same length!),
-save, and refresh the browser. This is basically drawing a picture with a
-keyboard.
+tile. `W` is wall, `.` is grass, `T` is a tree, `~` is water, `S` is space
+(solid, like a wall — see `TILE_LEGEND` just below `ROOM_MAP` for the full
+list and what each one does). Draw a new room using those letters (every
+row has to stay the same length!), save, and refresh the browser. This is
+basically drawing a picture with a keyboard.
 
 **Move the enemies, or add more.** `ENEMY_SPAWNS` is a list of `{ type, row,
 col }`. Change the `row`/`col` to move one, copy a line to add another, or
@@ -91,18 +97,24 @@ next section.
 
 Every character (the hero, the slime, the octorok) is drawn from a sprite
 sheet: one PNG image that's really a grid of 16x16 pixel squares, one per
-animation frame. The game shows them on screen at 2x size (32x32) so they
-line up with the room's tiles, but you always *draw* at the true 16x16 size.
+animation frame. Every floor/wall tile (grass, wall, tree, water, space) is
+drawn from its own single 16x16 image — no grid, just one picture per tile
+type. The game shows all of it on screen at 2x size (32x32) so it lines up
+with the room's 32px grid, but you always *draw* at the true 16x16 size.
 
-**Themes.** Sprite sheets live in `assets/sprites/<theme>/`, where a "theme"
-is just a folder — one per kid, so each of them can have their own art
-without touching anyone else's. `assets/sprites/default/` is special: it's
-the placeholder art that ships with the game, and it's guaranteed to always
-have every file the game needs. Any other theme folder (like `gata/`) only
-needs to contain the files it wants to *change* — if a theme is missing a
-file entirely (or the whole folder doesn't exist), the game quietly falls
-back to that same file in `default/` instead. So a kid can start by adding
-just a new `player.png` and nothing else, and everything besides the player
+**Themes.** Sprite sheets and tile images both live under
+`assets/sprites/<theme>/`, where a "theme" is just a folder — one per kid,
+so each of them can have their own art without touching anyone else's.
+Character sheets go directly in the theme folder (`assets/sprites/gata/
+player.png`); tile images go in a `tiles/` subfolder underneath it
+(`assets/sprites/gata/tiles/wall.png`). `assets/sprites/default/` is
+special: it's the placeholder art that ships with the game, and it's
+guaranteed to always have every file the game needs. Any other theme folder
+only needs to contain the files it wants to *change* — if a theme is
+missing a file entirely (or the whole folder, or its `tiles/` subfolder,
+doesn't exist), the game quietly falls back to that same file in
+`default/` instead, one asset at a time. So a kid can start by adding just
+a new `player.png`, or just a new `tiles/wall.png`, and everything else
 will keep using the placeholder art until they get around to it.
 
 **Picking a theme.** For now (until there's an in-game menu for it), which
@@ -120,16 +132,18 @@ placeholder art.
 
 1. Make a new folder under `assets/sprites/`, named after you (e.g.
    `assets/sprites/leo/`).
-2. Draw a `player.png` (or `slime.png`, `octorok.png` — whichever you want
-   to change first) as a 16x16-per-frame grid, using
-   [Piskel](https://www.piskelapp.com/) (free, runs in the browser, has a
-   spritesheet import/export mode built for exactly this) or any pixel art
-   tool that can export a PNG grid of fixed-size frames. Opening the
-   matching file in `assets/sprites/default/` as a spritesheet import
-   (telling it the frames are 16x16) is the easiest way to see the frame
-   grid you need to match.
+2. Pick something to redraw first — a character sheet (`player.png`,
+   `slime.png`, `octorok.png`) or a tile (`tiles/grass.png`, `tiles/wall.png`,
+   `tiles/tree.png`, `tiles/water.png`, `tiles/space.png` — make a `tiles/`
+   folder inside your theme folder for these). Draw it at 16x16 (or, for a
+   character sheet, a 16x16-per-frame grid — see below for the layout),
+   using [Piskel](https://www.piskelapp.com/) (free, runs in the browser,
+   has a spritesheet import/export mode built for exactly this) or any
+   pixel art tool. Opening the matching file from `assets/sprites/default/`
+   is the easiest way to see exactly what you need to match (grid size for
+   a sheet, or just the 16x16 canvas for a tile).
 3. Save it into your folder with the same file name as the one you're
-   replacing.
+   replacing (tiles keep their name inside your own `tiles/` subfolder).
 4. Set `THEME` in `BootScene.js` to your folder name and refresh the
    browser.
 
@@ -188,7 +202,9 @@ can then override it the same way as the built-in enemies.
   `"chase"`. Try adding a `"flee"` behavior that runs away from the player
   instead of chasing.
 - **A new tile type.** Add a letter to `TILE_LEGEND` in `mapData.js` (say,
-  `"S"` for sand — walkable, different color), then use it in `ROOM_MAP`.
+  `"R"` for road — walkable, `name: "road"`), draw a matching
+  `assets/sprites/default/tiles/road.png` (16x16), then use `"R"` in
+  `ROOM_MAP`.
 - **Tune the sword.** `SWORD_CONFIG` in `spriteConfig.js` controls how long
   the sword stays out and how often you can swing — try making it swing
   faster or hit harder.

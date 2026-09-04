@@ -1,5 +1,5 @@
 import { ROOM_MAP, TILE_LEGEND, TILE_SIZE, PLAYER_START, ENEMY_SPAWNS } from "../data/mapData.js";
-import { ENEMY_TYPES, SWORD_CONFIG } from "../data/spriteConfig.js";
+import { ENEMY_TYPES, SWORD_CONFIG, DISPLAY_SCALE } from "../data/spriteConfig.js";
 import Player from "../entities/Player.js";
 import Enemy from "../entities/Enemy.js";
 
@@ -73,7 +73,9 @@ export default class GameScene extends Phaser.Scene {
         }
         const x = col * TILE_SIZE + TILE_SIZE / 2;
         const y = row * TILE_SIZE + TILE_SIZE / 2;
-        const image = this.add.image(x, y, `tile_${tile.name}`);
+        // Tile art is drawn at 16x16 and shown at 2x, same as characters,
+        // so it lines up with the 32px grid.
+        const image = this.add.image(x, y, `tile_${tile.name}`).setScale(DISPLAY_SCALE);
         if (tile.solid) {
           this.physics.add.existing(image, true); // true = static body
           this.wallsGroup.add(image);

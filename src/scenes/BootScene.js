@@ -1,4 +1,4 @@
-import { TILE_SIZE, TILE_LEGEND } from "../data/mapData.js";
+import { TILE_LEGEND } from "../data/mapData.js";
 import {
   ASSET_ROOT, DEFAULT_THEME, FRAME_SIZE,
   PLAYER_CONFIG, PLAYER_WALK_ROWS, PLAYER_ATTACK_ROWS,
@@ -8,18 +8,20 @@ import {
 // ============================================================================
 // BOOT SCENE
 // ----------------------------------------------------------------------------
-// Runs once, before anything else. It loads the pixel-art sprite sheets for
-// the current theme (falling back to the default art piece-by-piece when the
-// theme doesn't provide something), builds the tile/heart textures, defines
-// every animation, and then hands off to GameScene.
+// Runs once, before anything else. It loads the pixel-art sprite sheets and
+// tile images for the current theme (falling back to the default art
+// piece-by-piece when the theme doesn't provide something), builds the
+// heart textures, defines every animation, and then hands off to GameScene.
 // ============================================================================
 
 // ---- Pick a theme! -----------------------------------------------------
 // This should match a folder name under assets/sprites/ (e.g. "gata" for
 // assets/sprites/gata/). Each theme only needs to supply the files it wants
-// to change — for anything it's missing (the folder doesn't exist, or just
-// one file in it is missing), that one asset quietly falls back to
-// assets/sprites/default/ instead, which is guaranteed to have everything.
+// to change — character sheets directly in the folder (player.png, etc.)
+// and/or tile images under a tiles/ subfolder (tiles/wall.png, etc.). For
+// anything it's missing (the folder doesn't exist, or just one file in it
+// is missing), that one asset quietly falls back to assets/sprites/default/
+// instead, which is guaranteed to have everything.
 // Set this to "" (or DEFAULT_THEME) to always use the default art.
 const THEME = "gata";
 // --------------------------------------------------------------------------
@@ -30,9 +32,10 @@ export default class BootScene extends Phaser.Scene {
   }
 
   preload() {
-    // Tracks sprite sheets currently loading, so a 404 can be retried
-    // against the default theme instead of just failing outright.
-    //   key (e.g. "player") -> { sheetFile, stage: "theme" | "default" }
+    // Tracks sprite sheets / tile images currently loading, so a 404 can be
+    // retried against the default theme instead of just failing outright.
+    //   key (e.g. "player" or "tile_wall") ->
+    //     { sheetFile, stage: "theme" | "default", kind: "spritesheet" | "image", tileName? }
     this._pendingSheets = new Map();
 
     // Tracks the *optional* animation-tag metadata (an Aseprite JSON export)
@@ -47,6 +50,8 @@ export default class BootScene extends Phaser.Scene {
     Object.values(ENEMY_TYPES).forEach((cfg) => {
       this.queueCharacterSheet(cfg.key, cfg.sheetFile);
     });
+
+    this.queueTileImages();
   }
 
   // Queues a character's sprite sheet from THEME (or, if `stage` is passed
@@ -59,20 +64,48 @@ export default class BootScene extends Phaser.Scene {
     }
     const theme = stage === "theme" ? THEME : DEFAULT_THEME;
 
-    this._pendingSheets.set(key, { sheetFile, stage });
+    this._pendingSheets.set(key, { sheetFile, stage, kind: "spritesheet" });
     this.load.spritesheet(key, `${ASSET_ROOT}/${theme}/${sheetFile}`, {
       frameWidth: FRAME_SIZE,
       frameHeight: FRAME_SIZE,
     });
   }
 
+  // One plain (non-animated) image per distinct tile name in TILE_LEGEND —
+  // e.g. TILE_LEGEND's "W" entry (name: "wall") loads as texture "tile_wall".
+  queueTileImages() {
+    const tileNames = new Set(Object.values(TILE_LEGEND).map((tile) => tile.name));
+    tileNames.forEach((name) => this.queueTileImage(name));
+  }
+
+  // Queues one tile's image from THEME (or "default", same theme/fallback
+  // convention as queueCharacterSheet). GameScene always looks the result up
+  // as `tile_<name>`, regardless of which theme it actually came from.
+  queueTileImage(name, stage) {
+    if (!stage) {
+      stage = THEME && THEME !== DEFAULT_THEME ? "theme" : "default";
+    }
+    const theme = stage === "theme" ? THEME : DEFAULT_THEME;
+    const key = `tile_${name}`;
+
+    this._pendingSheets.set(key, { sheetFile: `${name}.png`, stage, kind: "image", tileName: name });
+    this.load.image(key, `${ASSET_ROOT}/${theme}/tiles/${name}.png`);
+  }
+
   // A sprite sheet finished loading — see if that same theme folder also
   // has a matching <name>.json (an Aseprite export naming each animation's
   // frames). If it does, buildPlayerAnimations()/buildEnemyAnimations()
-  // will use it instead of the hardcoded *_ROWS frame numbers.
+  // will use it instead of the hardcoded *_ROWS frame numbers. Plain tile
+  // images don't have any of this — they're done as soon as they load.
   handleFileComplete(key, type) {
     const pending = this._pendingSheets.get(key);
-    if (!pending || type !== "spritesheet") return;
+    if (!pending) return;
+
+    if (pending.kind === "image") {
+      this._pendingSheets.delete(key);
+      return;
+    }
+    if (type !== "spritesheet") return;
 
     const theme = pending.stage === "theme" ? THEME : DEFAULT_THEME;
     const baseName = pending.sheetFile.replace(/\.png$/i, "");
@@ -89,9 +122,13 @@ export default class BootScene extends Phaser.Scene {
       if (pendingSheet.stage === "theme") {
         console.warn(
           `AventuraGaTo: theme "${THEME}" has no ${pendingSheet.sheetFile} — ` +
-          `using the default sprite for "${file.key}".`
+          `using the default art for "${file.key}".`
         );
-        this.queueCharacterSheet(file.key, pendingSheet.sheetFile, "default");
+        if (pendingSheet.kind === "image") {
+          this.queueTileImage(pendingSheet.tileName, "default");
+        } else {
+          this.queueCharacterSheet(file.key, pendingSheet.sheetFile, "default");
+        }
       } else {
         console.error(
           `AventuraGaTo: the default theme is missing ${pendingSheet.sheetFile} ` +
@@ -110,25 +147,10 @@ export default class BootScene extends Phaser.Scene {
   }
 
   create() {
-    this.generateTileTextures();
     this.generateHeartTextures();
     this.createAnimations();
 
     this.scene.start("Game");
-  }
-
-  // One square texture per tile letter in TILE_LEGEND (wall, grass, tree, water).
-  generateTileTextures() {
-    Object.values(TILE_LEGEND).forEach(({ name, color }) => {
-      const g = this.add.graphics();
-      g.fillStyle(color, 1);
-      g.fillRect(0, 0, TILE_SIZE, TILE_SIZE);
-      // a subtle darker border so tiles read as separate squares
-      g.lineStyle(1, 0x000000, 0.15);
-      g.strokeRect(0, 0, TILE_SIZE, TILE_SIZE);
-      g.generateTexture(`tile_${name}`, TILE_SIZE, TILE_SIZE);
-      g.destroy();
-    });
   }
 
   // Two small heart textures (full/empty) for the HUD.

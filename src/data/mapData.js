@@ -11,9 +11,10 @@
 //   . = grass floor  (walkable)
 //   T = tree         (solid, blocks walking)
 //   ~ = water        (solid for now — no swimming yet!)
+//   S = space        (solid, blocks walking)
 //
 // Want to design your own room? Copy this whole ROOM_MAP block into a text
-// editor, draw your room using only these 4 letters (keep every row the
+// editor, draw your room using only these letters (keep every row the
 // same length!), and paste it back in. Try adding more trees, building a
 // maze out of W's, or making a bigger pond.
 // ============================================================================
@@ -38,14 +39,17 @@ export const ROOM_MAP = [
   "WWWWWWWWWWWWWWWWWWWW",
 ];
 
-// What each letter means, and what color it's drawn as (since we don't have
-// hand-drawn tile art yet — see spriteConfig.js to change these colors).
-// `solid: true` means the player and enemies cannot walk through it.
+// What each letter means. `name` picks which PNG to draw it with — the
+// game loads assets/sprites/<theme>/tiles/<name>.png for each one (see
+// BootScene.js), falling back to assets/sprites/default/tiles/<name>.png
+// the same way character sprites do. `solid: true` means the player and
+// enemies cannot walk through it.
 export const TILE_LEGEND = {
-  "W": { name: "wall", color: 0x5b4636, solid: true },
-  ".": { name: "grass", color: 0x4caf50, solid: false },
-  "T": { name: "tree", color: 0x1b5e20, solid: true },
-  "~": { name: "water", color: 0x2196f3, solid: true },
+  "W": { name: "wall", solid: true },
+  ".": { name: "grass", solid: false },
+  "T": { name: "tree", solid: true },
+  "~": { name: "water", solid: true },
+  "S": { name: "space", solid: true },
 };
 
 // Where things start out. Row/col are grid positions (0 = top-left),
