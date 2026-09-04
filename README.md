@@ -14,7 +14,7 @@ needs to come from a tiny local web server. That's normal for basically all
 web games, and it takes one command:
 
 ```
-cd zelda-prototype
+cd AventuraGaTo
 python3 -m http.server 8000
 ```
 
@@ -28,22 +28,24 @@ If you run out of hearts, press R to try again.
 ## How the project is organized
 
 ```
-zelda-prototype/
+AventuraGaTo/
   index.html              ← loads Phaser and starts the game
   lib/phaser.min.js       ← the Phaser game engine (vendored so it works offline)
   assets/
     sprites/
-      player.png          ← ⭐ the hero's animation frames — very kid-editable
-      slime.png           ← ⭐ slime's animation frames
-      octorok.png         ← ⭐ octorok's animation frames
-  tools/
-    generate_sprites.py   ← the Python script that DREW the placeholder art above
-                             (not part of the game — a one-time art generator;
-                             see "Drawing your own pixel-art sprites" below)
+      default/            ← ⭐ the fallback art — always has every asset
+        player.png
+        slime.png
+        octorok.png
+      gata/               ← ⭐ a THEME — one kid's own art, drawn in Aseprite
+        player.png
+        player.json          (tells the game which frames are which animation)
+      <your-name>/        ← ⭐ add one of these per kid — see below!
   src/
     main.js               ← game window setup (size, zoom, physics)
     scenes/
-      BootScene.js        ← loads the sprite sheets, draws tiles/hearts, defines animations
+      BootScene.js        ← picks the theme, loads sprite sheets (with fallback),
+                             draws tiles/hearts, defines animations
       GameScene.js        ← builds the room, spawns everyone, runs the main loop
     entities/
       Player.js           ← movement, facing direction, sword swing, health
@@ -85,32 +87,53 @@ animations play — higher is faster/twitchier, lower is slower/floatier).
 `assets/sprites/`, and it's the best next thing to hand your kids. See the
 next section.
 
-## Drawing your own pixel-art sprites
+## Drawing your own pixel-art sprites — one folder per kid
 
 Every character (the hero, the slime, the octorok) is drawn from a sprite
-sheet: one PNG image in `assets/sprites/` that's really a grid of 16x16
-pixel squares, one per animation frame, read left-to-right then top-to-bottom.
-The game shows them on screen at 2x size (32x32) so they line up with the
-room's tiles, but you always *draw* at the true 16x16 size.
+sheet: one PNG image that's really a grid of 16x16 pixel squares, one per
+animation frame. The game shows them on screen at 2x size (32x32) so they
+line up with the room's tiles, but you always *draw* at the true 16x16 size.
 
-This is the single best task to hand your kids, in [Piskel](https://www.piskelapp.com/)
-(free, runs in the browser, has a spritesheet import/export mode built for
-exactly this) or any other pixel art tool that can export a PNG grid of
-fixed-size frames:
+**Themes.** Sprite sheets live in `assets/sprites/<theme>/`, where a "theme"
+is just a folder — one per kid, so each of them can have their own art
+without touching anyone else's. `assets/sprites/default/` is special: it's
+the placeholder art that ships with the game, and it's guaranteed to always
+have every file the game needs. Any other theme folder (like `gata/`) only
+needs to contain the files it wants to *change* — if a theme is missing a
+file entirely (or the whole folder doesn't exist), the game quietly falls
+back to that same file in `default/` instead. So a kid can start by adding
+just a new `player.png` and nothing else, and everything besides the player
+will keep using the placeholder art until they get around to it.
 
-1. Open the existing sheet (say `assets/sprites/player.png`) in Piskel as a
-   spritesheet import, telling it the frames are 16x16.
-2. Redraw any frame — change hair color, add a hat, whatever. You don't have
-   to touch every frame at once; even recoloring just the "down" walk row
-   is a fun first project.
-3. Export back to a PNG grid at the *same* 16x16-per-frame size and the same
-   number of rows/columns, and save it over the original file (same name,
-   same folder).
-4. Refresh the browser. That's it — nothing else needs to change, because
-   the game only cares about *which frame index* belongs to which animation,
-   not how that frame was drawn.
+**Picking a theme.** For now (until there's an in-game menu for it), which
+theme is active is a single line near the top of `src/scenes/BootScene.js`:
 
-**The frame grid, so you know what goes where:**
+```js
+const THEME = "gata";
+```
+
+Change the folder name in quotes to switch themes, save, and refresh the
+browser. Setting it to `""` (or back to `"default"`) always uses the
+placeholder art.
+
+**Starting your own theme:**
+
+1. Make a new folder under `assets/sprites/`, named after you (e.g.
+   `assets/sprites/leo/`).
+2. Draw a `player.png` (or `slime.png`, `octorok.png` — whichever you want
+   to change first) as a 16x16-per-frame grid, using
+   [Piskel](https://www.piskelapp.com/) (free, runs in the browser, has a
+   spritesheet import/export mode built for exactly this) or any pixel art
+   tool that can export a PNG grid of fixed-size frames. Opening the
+   matching file in `assets/sprites/default/` as a spritesheet import
+   (telling it the frames are 16x16) is the easiest way to see the frame
+   grid you need to match.
+3. Save it into your folder with the same file name as the one you're
+   replacing.
+4. Set `THEME` in `BootScene.js` to your folder name and refresh the
+   browser.
+
+**The frame grid, if you're drawing plain rows (no animation tags):**
 
 `player.png` is 4 columns × 6 rows:
 - Row 0/1/2 = walking, facing down / up / sideways (4 frames each — frame 0
@@ -129,18 +152,34 @@ have a "facing side").
 
 These row/column assignments live in `src/data/spriteConfig.js`
 (`PLAYER_WALK_ROWS`, `PLAYER_ATTACK_ROWS`, `OCTOROK_WALK_ROWS`) if you ever
-want to reorganize the sheet layout itself, and `src/scenes/BootScene.js` is
-where those rows get turned into named animations.
+want to reorganize the sheet layout itself.
 
-Want to design a brand new creature from scratch instead of editing the
-placeholder? Draw a fresh 16x16-per-frame PNG in the same grid shape, drop
-it in `assets/sprites/`, point a new entry in `ENEMY_TYPES` at it (see
-`src/data/spriteConfig.js`), and it'll walk, wander/chase, and take damage
-exactly like the existing enemies.
+**Drawing in Aseprite instead? You can name your rows and skip the grid
+math.** If you draw in [Aseprite](https://www.aseprite.org/) and export a
+sprite sheet, it can also export a matching `<name>.json` file (a "JSON
+Hash" export) alongside the PNG — for example `player.json` next to
+`player.png`, in the same theme folder. If that file uses Aseprite's *frame
+tags* to name each animation, the game reads it and uses your tagged frame
+ranges instead of the hardcoded row numbers above — which means your rows
+don't have to be in any particular order, or even be 4 frames each. Name
+your tags exactly (case doesn't matter):
 
-(The placeholder art itself was generated by `tools/generate_sprites.py`, a
-small Python script — not something you need to run, but it's there to read
-if you're curious how the current frames were built.)
+- `player.png` tags: `Down`, `Up`, `Side` (walking), and `DownAtk`, `UpAtk`,
+  `SideAtk` (sword swings)
+- `octorok.png` tags: `Down`, `Up`, `Side`
+- `slime.png` tag: `Wobble`
+
+Any tag you leave out just falls back to that direction's hardcoded row, so
+you don't need to tag everything at once. This is exactly how `gata/` was
+built — `gata/player.png` was drawn with a completely different row order
+than `default/player.png`, and `gata/player.json` is what tells the game
+which frames are which.
+
+**A brand new creature from scratch?** Draw a fresh 16x16-per-frame PNG (in
+`default/`, since every asset needs to exist there), point a new entry in
+`ENEMY_TYPES` at it (see `src/data/spriteConfig.js`), and it'll walk,
+wander/chase, and take damage exactly like the existing enemies. Any theme
+can then override it the same way as the built-in enemies.
 
 ## Things that involve a little actual coding (good next step for the 11-year-old)
 

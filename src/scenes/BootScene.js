@@ -1,21 +1,28 @@
 import { TILE_SIZE, TILE_LEGEND } from "../data/mapData.js";
 import {
+  ASSET_ROOT, DEFAULT_THEME, FRAME_SIZE,
   PLAYER_CONFIG, PLAYER_WALK_ROWS, PLAYER_ATTACK_ROWS,
-  ENEMY_TYPES, OCTOROK_WALK_ROWS, FRAME_SIZE,
+  ENEMY_TYPES, OCTOROK_WALK_ROWS,
 } from "../data/spriteConfig.js";
 
 // ============================================================================
 // BOOT SCENE
 // ----------------------------------------------------------------------------
-// Runs once, before anything else. It loads the pixel-art sprite sheets,
-// builds the tile/heart textures, defines every animation, and then hands
-// off to GameScene.
-//
-// Tiles and hearts are still simple drawn shapes (Phaser Graphics baked into
-// a texture) — there's no motion to animate there, so there's no need for
-// sprite sheet art yet. Characters (player + enemies), which now walk and
-// swing a sword, load from real 16x16 PNGs in assets/sprites/.
+// Runs once, before anything else. It loads the pixel-art sprite sheets for
+// the current theme (falling back to the default art piece-by-piece when the
+// theme doesn't provide something), builds the tile/heart textures, defines
+// every animation, and then hands off to GameScene.
 // ============================================================================
+
+// ---- Pick a theme! -----------------------------------------------------
+// This should match a folder name under assets/sprites/ (e.g. "gata" for
+// assets/sprites/gata/). Each theme only needs to supply the files it wants
+// to change — for anything it's missing (the folder doesn't exist, or just
+// one file in it is missing), that one asset quietly falls back to
+// assets/sprites/default/ instead, which is guaranteed to have everything.
+// Set this to "" (or DEFAULT_THEME) to always use the default art.
+const THEME = "gata";
+// --------------------------------------------------------------------------
 
 export default class BootScene extends Phaser.Scene {
   constructor() {
@@ -23,16 +30,83 @@ export default class BootScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.spritesheet(PLAYER_CONFIG.key, PLAYER_CONFIG.sheet, {
+    // Tracks sprite sheets currently loading, so a 404 can be retried
+    // against the default theme instead of just failing outright.
+    //   key (e.g. "player") -> { sheetFile, stage: "theme" | "default" }
+    this._pendingSheets = new Map();
+
+    // Tracks the *optional* animation-tag metadata (an Aseprite JSON export)
+    // that may sit alongside a sprite sheet. Most sheets won't have one.
+    //   metaKey (e.g. "player__meta") -> characterKey (e.g. "player")
+    this._pendingMeta = new Map();
+
+    this.load.on("filecomplete", this.handleFileComplete, this);
+    this.load.on("loaderror", this.handleLoadError, this);
+
+    this.queueCharacterSheet(PLAYER_CONFIG.key, PLAYER_CONFIG.sheetFile);
+    Object.values(ENEMY_TYPES).forEach((cfg) => {
+      this.queueCharacterSheet(cfg.key, cfg.sheetFile);
+    });
+  }
+
+  // Queues a character's sprite sheet from THEME (or, if `stage` is passed
+  // in as "default", straight from the default theme). Called once per
+  // character up front, and again automatically by handleLoadError() if the
+  // themed version turns out to be missing.
+  queueCharacterSheet(key, sheetFile, stage) {
+    if (!stage) {
+      stage = THEME && THEME !== DEFAULT_THEME ? "theme" : "default";
+    }
+    const theme = stage === "theme" ? THEME : DEFAULT_THEME;
+
+    this._pendingSheets.set(key, { sheetFile, stage });
+    this.load.spritesheet(key, `${ASSET_ROOT}/${theme}/${sheetFile}`, {
       frameWidth: FRAME_SIZE,
       frameHeight: FRAME_SIZE,
     });
-    Object.values(ENEMY_TYPES).forEach((cfg) => {
-      this.load.spritesheet(cfg.key, cfg.sheet, {
-        frameWidth: FRAME_SIZE,
-        frameHeight: FRAME_SIZE,
-      });
-    });
+  }
+
+  // A sprite sheet finished loading — see if that same theme folder also
+  // has a matching <name>.json (an Aseprite export naming each animation's
+  // frames). If it does, buildPlayerAnimations()/buildEnemyAnimations()
+  // will use it instead of the hardcoded *_ROWS frame numbers.
+  handleFileComplete(key, type) {
+    const pending = this._pendingSheets.get(key);
+    if (!pending || type !== "spritesheet") return;
+
+    const theme = pending.stage === "theme" ? THEME : DEFAULT_THEME;
+    const baseName = pending.sheetFile.replace(/\.png$/i, "");
+    const metaKey = `${key}__meta`;
+
+    this._pendingMeta.set(metaKey, key);
+    this.load.json(metaKey, `${ASSET_ROOT}/${theme}/${baseName}.json`);
+    this._pendingSheets.delete(key);
+  }
+
+  handleLoadError(file) {
+    const pendingSheet = this._pendingSheets.get(file.key);
+    if (pendingSheet) {
+      if (pendingSheet.stage === "theme") {
+        console.warn(
+          `AventuraGaTo: theme "${THEME}" has no ${pendingSheet.sheetFile} — ` +
+          `using the default sprite for "${file.key}".`
+        );
+        this.queueCharacterSheet(file.key, pendingSheet.sheetFile, "default");
+      } else {
+        console.error(
+          `AventuraGaTo: the default theme is missing ${pendingSheet.sheetFile} ` +
+          `for "${file.key}" — it won't display correctly.`
+        );
+        this._pendingSheets.delete(file.key);
+      }
+      return;
+    }
+
+    if (this._pendingMeta.has(file.key)) {
+      // No animation-tag JSON for this character/theme — totally normal,
+      // it just means we'll animate it using the default frame-grid layout.
+      this._pendingMeta.delete(file.key);
+    }
   }
 
   create() {
@@ -75,48 +149,99 @@ export default class BootScene extends Phaser.Scene {
     });
   }
 
+  // ---- Animation-tag metadata helpers -----------------------------------
+
+  // Returns the parsed <name>.json for this character, or null if that
+  // theme's sheet didn't come with one (the common case). This is the raw
+  // Aseprite export — an object shaped like { frames: {...}, meta: {...} }
+  // — frame tags live at .meta.frameTags, which is what findTag() reads.
+  getAtlasData(key) {
+    const metaKey = `${key}__meta`;
+    return this.cache.json.exists(metaKey) ? this.cache.json.get(metaKey) : null;
+  }
+
+  // Looks up one named animation tag (Aseprite calls these "frame tags") by
+  // name, case-insensitively, e.g. findTag(atlasData, "downAtk") matches a
+  // tag named "DownAtk". Returns null if there's no metadata, or no tag
+  // with that name — either way, the caller falls back to the hardcoded rows.
+  findTag(atlasData, name) {
+    const frameTags = atlasData && atlasData.meta && atlasData.meta.frameTags;
+    if (!frameTags) return null;
+    const wanted = name.toLowerCase();
+    return frameTags.find((tag) => tag.name.toLowerCase() === wanted) || null;
+  }
+
   // Every animation used in the game is defined once, here, by name.
   // Player.js and Enemy.js just call sprite.play("player_walk_down") etc.
   createAnimations() {
+    this.buildPlayerAnimations();
+    this.buildEnemyAnimations();
+  }
+
+  buildPlayerAnimations() {
+    const key = PLAYER_CONFIG.key;
+    const meta = this.getAtlasData(key);
     const DIRS = ["down", "up", "side"];
 
+    // Walking. If the loaded sheet has a tag named "Down"/"Up"/"Side", use
+    // its exact frame range; otherwise fall back to PLAYER_WALK_ROWS.
     DIRS.forEach((dir) => {
+      const tag = this.findTag(meta, dir);
       const row = PLAYER_WALK_ROWS[dir];
       this.anims.create({
         key: `player_walk_${dir}`,
-        frames: this.anims.generateFrameNumbers(PLAYER_CONFIG.key, {
-          start: row * 4, end: row * 4 + 3,
+        frames: this.anims.generateFrameNumbers(key, {
+          start: tag ? tag.from : row * 4,
+          end: tag ? tag.to : row * 4 + 3,
         }),
         frameRate: PLAYER_CONFIG.walkFrameRate,
         repeat: -1,
       });
     });
 
+    // Sword swings. Tag names are "DownAtk"/"UpAtk"/"SideAtk" — this is the
+    // whole reason tag-based lookup exists: two artists can draw their
+    // attack rows in a completely different order and both still animate
+    // correctly, as long as their Aseprite tags use these exact names.
     DIRS.forEach((dir) => {
+      const tag = this.findTag(meta, `${dir}Atk`);
       const row = PLAYER_ATTACK_ROWS[dir];
       this.anims.create({
         key: `player_attack_${dir}`,
-        frames: this.anims.generateFrameNumbers(PLAYER_CONFIG.key, {
-          start: row * 4, end: row * 4 + 3,
+        frames: this.anims.generateFrameNumbers(key, {
+          start: tag ? tag.from : row * 4,
+          end: tag ? tag.to : row * 4 + 3,
         }),
         frameRate: PLAYER_CONFIG.attackFrameRate,
         repeat: 0,
       });
     });
+  }
 
+  buildEnemyAnimations() {
+    const slimeKey = ENEMY_TYPES.slime.key;
+    const slimeMeta = this.getAtlasData(slimeKey);
+    const slimeTag = this.findTag(slimeMeta, "wobble");
     this.anims.create({
       key: "slime_wobble",
-      frames: this.anims.generateFrameNumbers(ENEMY_TYPES.slime.key, { start: 0, end: 3 }),
+      frames: this.anims.generateFrameNumbers(slimeKey, {
+        start: slimeTag ? slimeTag.from : 0,
+        end: slimeTag ? slimeTag.to : 3,
+      }),
       frameRate: ENEMY_TYPES.slime.animFrameRate,
       repeat: -1,
     });
 
-    DIRS.forEach((dir) => {
+    const octoKey = ENEMY_TYPES.octorok.key;
+    const octoMeta = this.getAtlasData(octoKey);
+    ["down", "up", "side"].forEach((dir) => {
+      const tag = this.findTag(octoMeta, dir);
       const row = OCTOROK_WALK_ROWS[dir];
       this.anims.create({
         key: `octorok_walk_${dir}`,
-        frames: this.anims.generateFrameNumbers(ENEMY_TYPES.octorok.key, {
-          start: row * 4, end: row * 4 + 3,
+        frames: this.anims.generateFrameNumbers(octoKey, {
+          start: tag ? tag.from : row * 4,
+          end: tag ? tag.to : row * 4 + 3,
         }),
         frameRate: ENEMY_TYPES.octorok.animFrameRate,
         repeat: -1,
