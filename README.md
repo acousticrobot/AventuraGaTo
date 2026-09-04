@@ -15,12 +15,23 @@ web games, and it takes one command:
 
 ```
 cd AventuraGaTo
-python3 -m http.server 8000
+python3 serve.py
 ```
 
-(No Python? `npx serve .` works the same way if you have Node.js installed.)
+(No Python? `npx serve .` works the same way if you have Node.js installed
+— see the caching note below though.)
 
 Then open **http://localhost:8000** in your browser.
+
+`serve.py` is just a plain static file server (same as `python3 -m
+http.server`), with one difference: it tells the browser not to cache
+anything. Without that, browsers will sometimes keep showing an *old*
+version of a file you just edited — even after a refresh — because they
+think it's still fresh. That's especially confusing for a kid who just
+redrew a sprite or changed a color and refreshed the page expecting to see
+it. If you ever do see something that doesn't match what's in your editor,
+a hard refresh (Shift+reload, or the "Empty Cache and Hard Reload" option
+in your browser's dev tools) will always get you unstuck too.
 
 **Controls:** Arrow keys or WASD to move. Space or Z to swing your sword.
 If you run out of hearts, press R to try again.
@@ -30,6 +41,7 @@ If you run out of hearts, press R to try again.
 ```
 AventuraGaTo/
   index.html              ← loads Phaser and starts the game
+  serve.py                ← the local server to run it with (see "Running it" above)
   lib/phaser.min.js       ← the Phaser game engine (vendored so it works offline)
   assets/
     sprites/
