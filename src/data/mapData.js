@@ -22,21 +22,21 @@
 export const TILE_SIZE = 32;
 
 export const ROOM_MAP = [
-  "WWWWWWWWWWWWWWWWWWWW",
-  "W..................W",
-  "W.TT............TT.W",
-  "W.TT............TT.W",
-  "W..................W",
-  "W.............WW...W",
-  "W.......~~~...WW...W",
-  "W.......~~~~.......W",
-  "W........~~........W",
-  "W..................W",
-  "W..................W",
-  "W...TTTT....TTTT...W",
-  "W..................W",
-  "W..................W",
-  "WWWWWWWWWWWWWWWWWWWW",
+  "WWWWWW|WWWWWWWWWWWWW",
+  "W.....|............W",
+  "W.TT..|.~~~~...TTT.W",
+  "W.TT..|........TTT.W",
+  "W.....|............W",
+  "W.....||.....WW....W",
+  "W~~~~~~|~~~...WW...W",
+  "W~~~~~~|~~~~.......W",
+  "W~~~~~~|~~~........W",
+  "W......|||||||||||||",
+  "W......||..........W",
+  "W...TTTT|...TTTT...W",
+  "W.......|........SSS",
+  "W.......|.........SS",
+  "WWWWWWWW|WWWWWWWSSSS",
 ];
 
 // What each letter means. `name` picks which PNG to draw it with — the
@@ -47,6 +47,7 @@ export const ROOM_MAP = [
 export const TILE_LEGEND = {
   "W": { name: "wall", solid: true },
   ".": { name: "grass", solid: false },
+  "|": { name: "path", solid: false },
   "T": { name: "tree", solid: true },
   "~": { name: "water", solid: true },
   "S": { name: "space", solid: true },

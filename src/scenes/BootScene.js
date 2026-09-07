@@ -23,7 +23,7 @@ import {
 // is missing), that one asset quietly falls back to assets/sprites/default/
 // instead, which is guaranteed to have everything.
 // Set this to "" (or DEFAULT_THEME) to always use the default art.
-const THEME = "gata";
+const THEME = "default";
 // --------------------------------------------------------------------------
 
 export default class BootScene extends Phaser.Scene {
