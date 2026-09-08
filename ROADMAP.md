@@ -4,8 +4,9 @@
 
 What order should we add new features and enhancements to the game? Kids get to vote on their favorites and learn about the development cycle.
 
+- asset - Player @done
+- bugfix - 
 - asset - Octorock
-- asset - Player
 - asset - Ground
 - asset - Path
 - asset - Monsters

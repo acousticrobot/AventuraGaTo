@@ -148,9 +148,58 @@ export default class BootScene extends Phaser.Scene {
 
   create() {
     this.generateHeartTextures();
+    this.registerAtlasFrames(PLAYER_CONFIG.key);
+    Object.values(ENEMY_TYPES).forEach((cfg) => this.registerAtlasFrames(cfg.key));
     this.createAnimations();
 
     this.scene.start("Game");
+  }
+
+  // If this character's sheet came with an Aseprite JSON, add its exact
+  // per-frame pixel rects as extra named frames on top of the texture's
+  // existing 0/1/2/3... grid frames (from the plain frameWidth/frameHeight
+  // slicing in queueCharacterSheet). We need these because Aseprite's own
+  // frame numbering (what frameTags' from/to refer to) is just a count of
+  // however many frames actually exist, packed with no gaps — it does NOT
+  // match Phaser's grid-cell numbering once a row has fewer drawn frames
+  // than the widest row (e.g. an 8-frame walk cycle next to a 5-frame
+  // attack in the same sheet: Aseprite calls the attack's first frame "24",
+  // but Phaser's grid calls that same pixel position "24" only if every
+  // earlier row was completely full — otherwise the numbers drift apart
+  // row by row). Reading each frame's real x/y/w/h from the JSON sidesteps
+  // that mismatch entirely, so buildPlayerAnimations()/buildEnemyAnimations()
+  // can play back the actual drawn pixels no matter how the rows line up.
+  registerAtlasFrames(key) {
+    const atlasData = this.getAtlasData(key);
+    if (!atlasData) return; // no JSON for this sheet — plain grid frames are all there is
+
+    const texture = this.textures.get(key);
+    Object.entries(atlasData.frames).forEach(([name, info]) => {
+      if (texture.has(name)) return;
+      const { x, y, w, h } = info.frame;
+      texture.add(name, 0, x, y, w, h);
+    });
+  }
+
+  // A tag's `from`/`to` are indices into the JSON's own frame list, in the
+  // exact order Aseprite wrote them — NOT a row/column position. Object.keys
+  // preserves that same order, so slicing it is the correct (and only
+  // reliable) way to turn a tag into the actual frame names to play.
+  tagFrameNames(atlasData, tag) {
+    return Object.keys(atlasData.frames).slice(tag.from, tag.to + 1);
+  }
+
+  // Builds an animation's frame list: named frames (from the tag, via the
+  // JSON's real pixel data) when a tag was found, otherwise the hardcoded
+  // row/column fallback for sheets with no JSON at all.
+  animFrames(key, atlasData, tag, fallbackRow) {
+    if (tag) {
+      return this.anims.generateFrameNames(key, { frames: this.tagFrameNames(atlasData, tag) });
+    }
+    return this.anims.generateFrameNumbers(key, {
+      start: fallbackRow * 4,
+      end: fallbackRow * 4 + 3,
+    });
   }
 
   // Two small heart textures (full/empty) for the HUD.
@@ -206,16 +255,13 @@ export default class BootScene extends Phaser.Scene {
     const DIRS = ["down", "up", "side"];
 
     // Walking. If the loaded sheet has a tag named "Down"/"Up"/"Side", use
-    // its exact frame range; otherwise fall back to PLAYER_WALK_ROWS.
+    // its exact frames (however many there are); otherwise fall back to
+    // PLAYER_WALK_ROWS' hardcoded 4-frame rows.
     DIRS.forEach((dir) => {
       const tag = this.findTag(meta, dir);
-      const row = PLAYER_WALK_ROWS[dir];
       this.anims.create({
         key: `player_walk_${dir}`,
-        frames: this.anims.generateFrameNumbers(key, {
-          start: tag ? tag.from : row * 4,
-          end: tag ? tag.to : row * 4 + 3,
-        }),
+        frames: this.animFrames(key, meta, tag, PLAYER_WALK_ROWS[dir]),
         frameRate: PLAYER_CONFIG.walkFrameRate,
         repeat: -1,
       });
@@ -223,17 +269,14 @@ export default class BootScene extends Phaser.Scene {
 
     // Sword swings. Tag names are "DownAtk"/"UpAtk"/"SideAtk" — this is the
     // whole reason tag-based lookup exists: two artists can draw their
-    // attack rows in a completely different order and both still animate
-    // correctly, as long as their Aseprite tags use these exact names.
+    // attack rows with a totally different number of frames (or in a
+    // different order) and both still animate correctly, as long as their
+    // Aseprite tags use these exact names.
     DIRS.forEach((dir) => {
       const tag = this.findTag(meta, `${dir}Atk`);
-      const row = PLAYER_ATTACK_ROWS[dir];
       this.anims.create({
         key: `player_attack_${dir}`,
-        frames: this.anims.generateFrameNumbers(key, {
-          start: tag ? tag.from : row * 4,
-          end: tag ? tag.to : row * 4 + 3,
-        }),
+        frames: this.animFrames(key, meta, tag, PLAYER_ATTACK_ROWS[dir]),
         frameRate: PLAYER_CONFIG.attackFrameRate,
         repeat: 0,
       });
@@ -246,10 +289,7 @@ export default class BootScene extends Phaser.Scene {
     const slimeTag = this.findTag(slimeMeta, "wobble");
     this.anims.create({
       key: "slime_wobble",
-      frames: this.anims.generateFrameNumbers(slimeKey, {
-        start: slimeTag ? slimeTag.from : 0,
-        end: slimeTag ? slimeTag.to : 3,
-      }),
+      frames: this.animFrames(slimeKey, slimeMeta, slimeTag, 0),
       frameRate: ENEMY_TYPES.slime.animFrameRate,
       repeat: -1,
     });
@@ -258,13 +298,9 @@ export default class BootScene extends Phaser.Scene {
     const octoMeta = this.getAtlasData(octoKey);
     ["down", "up", "side"].forEach((dir) => {
       const tag = this.findTag(octoMeta, dir);
-      const row = OCTOROK_WALK_ROWS[dir];
       this.anims.create({
         key: `octorok_walk_${dir}`,
-        frames: this.anims.generateFrameNumbers(octoKey, {
-          start: tag ? tag.from : row * 4,
-          end: tag ? tag.to : row * 4 + 3,
-        }),
+        frames: this.animFrames(octoKey, octoMeta, tag, OCTOROK_WALK_ROWS[dir]),
         frameRate: ENEMY_TYPES.octorok.animFrameRate,
         repeat: -1,
       });
