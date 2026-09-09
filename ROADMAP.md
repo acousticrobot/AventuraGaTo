@@ -5,8 +5,8 @@
 What order should we add new features and enhancements to the game? Kids get to vote on their favorites and learn about the development cycle.
 
 - asset - Player @done
-- bugfix - 
-- asset - Octorock
+- bugfix - load sprite json by frame location @done
+- asset - Seeker
 - asset - Ground
 - asset - Path
 - asset - Monsters
@@ -28,7 +28,7 @@ What order should we add new features and enhancements to the game? Kids get to 
 Asset Development can continue outside of game development, and requires minimal coding, at most additional config added to spriteConfig or madData
 
 - Player: Better Default Player sprite
-- Octorock: Create default Octorock sprite and rename
+- Seeker: Create default Seeker sprite and rename
 - Ground: Create ground (dirt) tiles
 - Path: Create directional path tiles
 - Monsters: more monsters with more animations

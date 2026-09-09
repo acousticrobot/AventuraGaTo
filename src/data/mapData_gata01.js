@@ -62,5 +62,5 @@ export const PLAYER_START = { row: 9, col: 10 };
 export const ENEMY_SPAWNS = [
   { type: "slime", row: 4, col: 5 },
   { type: "slime", row: 12, col: 15 },
-  { type: "octorok", row: 8, col: 4 },
+  { type: "seeker", row: 8, col: 4 },
 ];

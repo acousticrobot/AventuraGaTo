@@ -67,9 +67,9 @@ export const ENEMY_TYPES = {
     directional: false,       // one wobble animation, plays regardless of movement direction
     animFrameRate: 6,
   },
-  octorok: {
-    key: "octorok",
-    sheetFile: "octorok.png",
+  seeker: {
+    key: "seeker",
+    sheetFile: "seeker.png",
     speed: 60,
     health: 3,
     contactDamage: 1,
@@ -81,8 +81,8 @@ export const ENEMY_TYPES = {
   },
 };
 
-// Fallback row layout of octorok.png — 4 columns x 3 rows (down/up/side),
+// Fallback row layout of seeker.png — 4 columns x 3 rows (down/up/side),
 // same idea as PLAYER_WALK_ROWS, used only when there's no animation-tag
 // metadata for the loaded sheet. slime.png has no directional rows — it's
 // a single 4-frame row used no matter which way the slime is moving.
-export const OCTOROK_WALK_ROWS = { down: 0, up: 1, side: 2 };
+export const SEEKER_WALK_ROWS = { down: 0, up: 1, side: 2 };

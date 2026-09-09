@@ -2,7 +2,7 @@ import { TILE_LEGEND } from "../data/mapData.js";
 import {
   ASSET_ROOT, DEFAULT_THEME, FRAME_SIZE,
   PLAYER_CONFIG, PLAYER_WALK_ROWS, PLAYER_ATTACK_ROWS,
-  ENEMY_TYPES, OCTOROK_WALK_ROWS,
+  ENEMY_TYPES, SEEKER_WALK_ROWS,
 } from "../data/spriteConfig.js";
 
 // ============================================================================
@@ -23,7 +23,7 @@ import {
 // is missing), that one asset quietly falls back to assets/sprites/default/
 // instead, which is guaranteed to have everything.
 // Set this to "" (or DEFAULT_THEME) to always use the default art.
-const THEME = "default";
+const THEME = "tornado";
 // --------------------------------------------------------------------------
 
 export default class BootScene extends Phaser.Scene {
@@ -294,14 +294,14 @@ export default class BootScene extends Phaser.Scene {
       repeat: -1,
     });
 
-    const octoKey = ENEMY_TYPES.octorok.key;
+    const octoKey = ENEMY_TYPES.seeker.key;
     const octoMeta = this.getAtlasData(octoKey);
     ["down", "up", "side"].forEach((dir) => {
       const tag = this.findTag(octoMeta, dir);
       this.anims.create({
-        key: `octorok_walk_${dir}`,
-        frames: this.animFrames(octoKey, octoMeta, tag, OCTOROK_WALK_ROWS[dir]),
-        frameRate: ENEMY_TYPES.octorok.animFrameRate,
+        key: `seeker_walk_${dir}`,
+        frames: this.animFrames(octoKey, octoMeta, tag, SEEKER_WALK_ROWS[dir]),
+        frameRate: ENEMY_TYPES.seeker.animFrameRate,
         repeat: -1,
       });
     });

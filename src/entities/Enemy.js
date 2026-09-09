@@ -11,7 +11,7 @@ import { DISPLAY_SCALE } from "../data/spriteConfig.js";
 //   "chase"  — same as wander, but if the player gets close enough, beeline
 //              straight at them instead.
 //
-// Animation: an enemy with `directional: true` (like the octorok) plays a
+// Animation: an enemy with `directional: true` (like the seeker) plays a
 // down/up/side walk clip that follows its current velocity, flipping
 // horizontally for leftward movement — the same trick Player.js uses. An
 // enemy with `directional: false` (like the slime) just plays one looping

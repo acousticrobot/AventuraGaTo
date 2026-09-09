@@ -48,7 +48,7 @@ AventuraGaTo/
       default/            ← ⭐ the fallback art — always has every asset
         player.png
         slime.png
-        octorok.png
+        seeker.png
         tiles/
           grass.png, wall.png, tree.png, water.png, space.png
       gata/               ← ⭐ a THEME — one kid's own art, drawn in Aseprite
@@ -90,7 +90,7 @@ basically drawing a picture with a keyboard.
 
 **Move the enemies, or add more.** `ENEMY_SPAWNS` is a list of `{ type, row,
 col }`. Change the `row`/`col` to move one, copy a line to add another, or
-delete a line to remove one. `type` can be `"slime"` or `"octorok"` (defined
+delete a line to remove one. `type` can be `"slime"` or `"seeker"` (defined
 in `spriteConfig.js`).
 
 Then open `src/data/spriteConfig.js`:
@@ -107,7 +107,7 @@ next section.
 
 ## Drawing your own pixel-art sprites — one folder per kid
 
-Every character (the hero, the slime, the octorok) is drawn from a sprite
+Every character (the hero, the slime, the seeker) is drawn from a sprite
 sheet: one PNG image that's really a grid of 16x16 pixel squares, one per
 animation frame. Every floor/wall tile (grass, wall, tree, water, space) is
 drawn from its own single 16x16 image — no grid, just one picture per tile
@@ -145,7 +145,7 @@ placeholder art.
 1. Make a new folder under `assets/sprites/`, named after you (e.g.
    `assets/sprites/leo/`).
 2. Pick something to redraw first — a character sheet (`player.png`,
-   `slime.png`, `octorok.png`) or a tile (`tiles/grass.png`, `tiles/wall.png`,
+   `slime.png`, `seeker.png`) or a tile (`tiles/grass.png`, `tiles/wall.png`,
    `tiles/tree.png`, `tiles/water.png`, `tiles/space.png` — make a `tiles/`
    folder inside your theme folder for these). Draw it at 16x16 (or, for a
    character sheet, a 16x16-per-frame grid — see below for the layout),
@@ -169,7 +169,7 @@ placeholder art.
   flips it for left-facing movement, so there's no separate left-facing row
   to draw.
 
-`octorok.png` is 4 columns × 3 rows: walking down / up / sideways, same
+`seeker.png` is 4 columns × 3 rows: walking down / up / sideways, same
 flip-for-left trick as the player.
 
 `slime.png` is 4 columns × 1 row: a single squish/stretch loop that plays
@@ -177,7 +177,7 @@ no matter which way the slime is drifting (it's round — it doesn't really
 have a "facing side").
 
 These row/column assignments live in `src/data/spriteConfig.js`
-(`PLAYER_WALK_ROWS`, `PLAYER_ATTACK_ROWS`, `OCTOROK_WALK_ROWS`) if you ever
+(`PLAYER_WALK_ROWS`, `PLAYER_ATTACK_ROWS`, `SEEKER_WALK_ROWS`) if you ever
 want to reorganize the sheet layout itself.
 
 **Drawing in Aseprite instead? You can name your rows and skip the grid
@@ -192,7 +192,7 @@ your tags exactly (case doesn't matter):
 
 - `player.png` tags: `Down`, `Up`, `Side` (walking), and `DownAtk`, `UpAtk`,
   `SideAtk` (sword swings)
-- `octorok.png` tags: `Down`, `Up`, `Side`
+- `seeker.png` tags: `Down`, `Up`, `Side`
 - `slime.png` tag: `Wobble`
 
 Any tag you leave out just falls back to that direction's hardcoded row, so
