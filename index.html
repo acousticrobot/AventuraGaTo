@@ -5,6 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>A Aventura da Gata e do Tornado</title>
   <style>
+    /* A pixel-art font (Mojangles) for future UI work — see the "debug
+       coordinate overlay" in GameScene.js for its first use in-game.
+       Two weights, one family name: use fontStyle "bold" in Phaser text
+       config to get Mojang-Bold. */
+    @font-face {
+      font-family: 'Mojang';
+      src: url('./assets/fonts/Mojang-Regular.ttf') format('truetype');
+      font-weight: 400;
+    }
+    @font-face {
+      font-family: 'Mojang';
+      src: url('./assets/fonts/Mojang-Bold.ttf') format('truetype');
+      font-weight: 700;
+    }
+
     html, body {
       margin: 0;
       padding: 0;
@@ -36,7 +51,7 @@
 <body>
   <div id="game-container">
     <div id="game"></div>
-    <div id="hint">Arrow keys / WASD to move &nbsp;•&nbsp; Space or Z to attack</div>
+    <div id="hint">Arrow keys / WASD to move &nbsp;•&nbsp; Space or Z to attack &nbsp;•&nbsp; G for row,col grid</div>
   </div>
 
   <!-- Phaser 3 is included in lib/ so the game works completely offline —

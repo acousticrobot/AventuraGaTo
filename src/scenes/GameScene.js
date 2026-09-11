@@ -1,6 +1,7 @@
 import { getRoom } from "../data/rooms/index.js";
 import { TILE_SIZE } from "../data/tileSize.js";
 import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT } from "../data/viewport.js";
+import { GAME_CONFIG } from "../data/gameConfig.js";
 import { ENEMY_TYPES, ATTACK_CONFIG, DISPLAY_SCALE } from "../data/spriteConfig.js";
 import Player from "../entities/Player.js";
 import Enemy from "../entities/Enemy.js";
@@ -43,11 +44,17 @@ export default class GameScene extends Phaser.Scene {
     this.startId = data.startId || "default";
     this.room = getRoom(this.roomId);
     this.exitsEnabled = false;
+    // Carried through scene.restart() (see the exit handler and the
+    // death-restart in update()) so toggling the debug overlay sticks
+    // across room changes instead of resetting every time.
+    this.debugMode = data.debug !== undefined ? data.debug : GAME_CONFIG.debugStart;
   }
 
   create() {
     this.buildRoom();
     this.buildInput();
+    this.debugTexts = [];
+    if (this.debugMode) this.buildDebugOverlay();
 
     const start = this.room.STARTS[this.startId] || this.room.STARTS.default;
     this.player = new Player(
@@ -157,8 +164,46 @@ export default class GameScene extends Phaser.Scene {
       if (!this.exitsEnabled) return;
       this.exitsEnabled = false; // don't let this fire twice while we restart
       const { toRoom, toStart } = zone.exitData;
-      this.scene.restart({ roomId: toRoom, startId: toStart });
+      this.scene.restart({ roomId: toRoom, startId: toStart, debug: this.debugMode });
     });
+  }
+
+  // ---- Debug overlay (row,col labels on every tile) ----------------------
+  // Handy while drawing/editing a room's ROOM_MAP — counting characters in a
+  // text editor to find a tile's row/col is tedious, so press G to see them
+  // drawn right on the map instead. Toggled with GameScene's debugKey (G);
+  // GAME_CONFIG.debugStart in data/gameConfig.js just sets whether it's on
+  // when the game first boots.
+
+  buildDebugOverlay() {
+    this.room.ROOM_MAP.forEach((rowStr, row) => {
+      [...rowStr].forEach((_char, col) => {
+        const x = col * TILE_SIZE + 2;
+        const y = row * TILE_SIZE + 1;
+        const label = this.add.text(x, y, `${row},${col}`, {
+          fontFamily: "Mojang, monospace",
+          fontSize: "9px",
+          color: "#ffffff",
+          stroke: "#000000",
+          strokeThickness: 2,
+        }).setDepth(200);
+        this.debugTexts.push(label);
+      });
+    });
+  }
+
+  destroyDebugOverlay() {
+    this.debugTexts.forEach((label) => label.destroy());
+    this.debugTexts = [];
+  }
+
+  toggleDebug() {
+    this.debugMode = !this.debugMode;
+    if (this.debugMode) {
+      this.buildDebugOverlay();
+    } else {
+      this.destroyDebugOverlay();
+    }
   }
 
   // ---- Input --------------------------------------------------------------
@@ -176,6 +221,7 @@ export default class GameScene extends Phaser.Scene {
       z: Phaser.Input.Keyboard.KeyCodes.Z,
     });
     this.restartKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
+    this.debugKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.G);
   }
 
   readInput() {
@@ -245,11 +291,15 @@ export default class GameScene extends Phaser.Scene {
   // ---- Main loop --------------------------------------------------------
 
   update(time, delta) {
+    if (Phaser.Input.Keyboard.JustDown(this.debugKey)) {
+      this.toggleDebug();
+    }
+
     if (this.gameOver) {
       if (Phaser.Input.Keyboard.JustDown(this.restartKey)) {
         // Respawn in the same room, the same way you entered it, rather
         // than always bouncing back to room1.
-        this.scene.restart({ roomId: this.roomId, startId: this.startId });
+        this.scene.restart({ roomId: this.roomId, startId: this.startId, debug: this.debugMode });
       }
       return;
     }
