@@ -1,5 +1,5 @@
 import { ROOM_MAP, TILE_LEGEND, TILE_SIZE, PLAYER_START, ENEMY_SPAWNS } from "../data/mapData.js";
-import { ENEMY_TYPES, SWORD_CONFIG, DISPLAY_SCALE } from "../data/spriteConfig.js";
+import { ENEMY_TYPES, ATTACK_CONFIG, DISPLAY_SCALE } from "../data/spriteConfig.js";
 import Player from "../entities/Player.js";
 import Enemy from "../entities/Enemy.js";
 
@@ -44,9 +44,9 @@ export default class GameScene extends Phaser.Scene {
     this.physics.add.collider(this.enemyGroup, this.wallsGroup);
     this.physics.add.collider(this.enemyGroup, this.enemyGroup);
 
-    // Sword hits an enemy
-    this.physics.add.overlap(this.player.swordZone, this.enemyGroup, (_zone, enemySprite) => {
-      this.onSwordHitEnemy(enemySprite);
+    // Attack hits an enemy
+    this.physics.add.overlap(this.player.attackZone, this.enemyGroup, (_zone, enemySprite) => {
+      this.onAttackHitEnemy(enemySprite);
     });
 
     // Enemy touches the player
@@ -147,10 +147,10 @@ export default class GameScene extends Phaser.Scene {
 
   // ---- Combat events --------------------------------------------------
 
-  onSwordHitEnemy(enemySprite) {
+  onAttackHitEnemy(enemySprite) {
     const enemy = enemySprite.owner;
     if (!enemy || !enemy.alive) return;
-    enemy.takeDamage(SWORD_CONFIG.damage, this.time.now, this.player.sprite);
+    enemy.takeDamage(ATTACK_CONFIG.damage, this.time.now, this.player.sprite);
   }
 
   onEnemyTouchPlayer(enemySprite) {

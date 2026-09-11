@@ -1,10 +1,7 @@
 # A Aventura da Gata e do Tornado
 
-A tiny top-down adventure game, built with [Phaser 3](https://phaser.io), in
-the spirit of the original *Legend of Zelda*: one room, a sword, a couple of
-enemies, walls and trees you bump into, hearts for health, and a little
-animated hero and cast of enemies drawn as 16x16 pixel art. No build tools,
-no install step — just open it and play.
+A tiny top-down adventure game, built with [Phaser 3](https://phaser.io), drawn as 16x16 pixel art. 
+No build tools, no install step — just open it and play.
 
 ## Running it
 
@@ -33,7 +30,7 @@ it. If you ever do see something that doesn't match what's in your editor,
 a hard refresh (Shift+reload, or the "Empty Cache and Hard Reload" option
 in your browser's dev tools) will always get you unstuck too.
 
-**Controls:** Arrow keys or WASD to move. Space or Z to swing your sword.
+**Controls:** Arrow keys or WASD to move. Space or Z to attack.
 If you run out of hearts, press R to try again.
 
 ## How the project is organized
@@ -65,7 +62,7 @@ AventuraGaTo/
                              fallback), draws hearts, defines animations
       GameScene.js        ← builds the room, spawns everyone, runs the main loop
     entities/
-      Player.js           ← movement, facing direction, sword swing, health
+      Player.js           ← movement, facing direction, attack swing, health
       Enemy.js            ← enemy AI ("wander" and "chase" behaviors)
     data/
       mapData.js          ← ⭐ THE ROOM LAYOUT — most kid-editable file
@@ -96,7 +93,7 @@ in `spriteConfig.js`).
 Then open `src/data/spriteConfig.js`:
 
 **Change how things feel to play.** You can change `speed` (how fast
-something moves), `health` (how many sword hits it takes to defeat),
+something moves), `health` (how many attack hits it takes to defeat),
 `contactDamage` (how much it hurts the player to touch it), and the
 `walkFrameRate`/`attackFrameRate`/`animFrameRate` numbers (how fast the
 animations play — higher is faster/twitchier, lower is slower/floatier).
@@ -164,7 +161,7 @@ placeholder art.
 `player.png` is 4 columns × 6 rows:
 - Row 0/1/2 = walking, facing down / up / sideways (4 frames each — frame 0
   is also the "standing still" pose)
-- Row 3/4/5 = sword swing, facing down / up / sideways (4 frames each)
+- Row 3/4/5 = attack, facing down / up / sideways (4 frames each)
 - "sideways" is always drawn facing **right** — the game automatically
   flips it for left-facing movement, so there's no separate left-facing row
   to draw.
@@ -191,7 +188,7 @@ don't have to be in any particular order, or even be 4 frames each. Name
 your tags exactly (case doesn't matter):
 
 - `player.png` tags: `down`, `up`, `side` (walking), and `downAtk`, `upAtk`,
-  `sideAtk` (sword swings)
+  `sideAtk` (attack)
 - `seeker.png` tags: `down`, `up`, `side`
 - `slime.png` tag: `idle`
 
@@ -217,8 +214,8 @@ can then override it the same way as the built-in enemies.
   `"R"` for road — walkable, `name: "road"`), draw a matching
   `assets/sprites/default/tiles/road.png` (16x16), then use `"R"` in
   `ROOM_MAP`.
-- **Tune the sword.** `SWORD_CONFIG` in `spriteConfig.js` controls how long
-  the sword stays out and how often you can swing — try making it swing
+- **Tune the attack.** `ATTACK_CONFIG` in `spriteConfig.js` controls how long
+  the attack stays out and how often you can swing — try making it swing
   faster or hit harder.
 
 ## Roadmap — where this could go next
@@ -235,7 +232,7 @@ roughly the order they build on each other:
 3. **A simple inventory / HUD icon** for whatever item you just picked up.
 4. **A boss room** with a tougher enemy and a locked door that only opens
    once it's defeated.
-5. **Sound effects** for the sword swing, taking damage, and defeating an
+5. **Sound effects** for the attack swing, taking damage, and defeating an
    enemy (Phaser's audio support is simple; freesound.org has kid-safe
    effects to start from).
 

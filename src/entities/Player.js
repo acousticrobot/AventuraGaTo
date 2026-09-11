@@ -1,17 +1,17 @@
-import { PLAYER_CONFIG, SWORD_CONFIG, FRAME_SIZE, DISPLAY_SCALE } from "../data/spriteConfig.js";
+import { PLAYER_CONFIG, ATTACK_CONFIG, FRAME_SIZE, DISPLAY_SCALE } from "../data/spriteConfig.js";
 
 // ============================================================================
 // PLAYER
 // ----------------------------------------------------------------------------
 // Everything about controlling the hero lives here: movement, which way
-// they're facing, swinging the sword, taking damage, and hearts of health.
+// they're facing, swinging the attack, taking damage, and hearts of health.
 //
 // The player is a normal Arcade Physics sprite (so it can collide with
 // walls), drawn from the player.png sprite sheet and animated using the
 // clips BootScene.js defined ("player_walk_down", "player_attack_side", …).
-// The sword is a separate invisible physics "zone" that only turns on for a
+// The attack is a separate invisible physics "zone" that only turns on for a
 // few frames when you swing — GameScene checks whether it's overlapping an
-// enemy and applies damage if so. The visible sword-swing animation is
+// enemy and applies damage if so. The visible attack-swing animation is
 // purely cosmetic; the hitbox is what actually does damage.
 // ============================================================================
 
@@ -45,14 +45,14 @@ export default class Player {
     this.sprite.play(`player_walk_${ANIM_DIR[this.facing]}`);
     this.sprite.anims.stop(); // start on frame 0 (standing still), not mid-walk
 
-    // The sword is a rectangle physics body we move around by hand and
+    // The attack is a rectangle physics body we move around by hand and
     // only "turn on" (enable) while a swing is active.
-    this.swordZone = scene.add.zone(x, y, SWORD_CONFIG.length, SWORD_CONFIG.thickness);
-    scene.physics.add.existing(this.swordZone);
-    this.swordZone.body.enable = false;
-    this.swordActive = false;
-    this.swordActiveUntil = 0;
-    this.swordReadyAt = 0;
+    this.attackZone = scene.add.zone(x, y, ATTACK_CONFIG.length, ATTACK_CONFIG.thickness);
+    scene.physics.add.existing(this.attackZone);
+    this.attackZone.body.enable = false;
+    this.attackActive = false;
+    this.attackActiveUntil = 0;
+    this.attackReadyAt = 0;
   }
 
   get x() { return this.sprite.x; }
@@ -66,7 +66,7 @@ export default class Player {
   update(time, delta, input) {
     const isMoving = this.handleMovement(input);
     this.handleAttack(time, input);
-    this.updateSwordPosition();
+    this.updateAttackPosition();
     this.updateAnimation(isMoving);
 
     // gentle flash while invulnerable so it's clear you just got hit
@@ -111,17 +111,17 @@ export default class Player {
   }
 
   handleAttack(time, input) {
-    if (input.attackJustPressed && time >= this.swordReadyAt && !this.swordActive) {
-      this.swordActive = true;
-      this.swordActiveUntil = time + SWORD_CONFIG.activeMs;
-      this.swordReadyAt = time + SWORD_CONFIG.cooldownMs;
-      this.swordZone.body.enable = true;
+    if (input.attackJustPressed && time >= this.attackReadyAt && !this.attackActive) {
+      this.attackActive = true;
+      this.attackActiveUntil = time + ATTACK_CONFIG.activeMs;
+      this.attackReadyAt = time + ATTACK_CONFIG.cooldownMs;
+      this.attackZone.body.enable = true;
       this.sprite.play(`player_attack_${ANIM_DIR[this.facing]}`);
     }
 
-    if (this.swordActive && time >= this.swordActiveUntil) {
-      this.swordActive = false;
-      this.swordZone.body.enable = false;
+    if (this.attackActive && time >= this.attackActiveUntil) {
+      this.attackActive = false;
+      this.attackZone.body.enable = false;
     }
   }
 
@@ -131,7 +131,7 @@ export default class Player {
   updateAnimation(isMoving) {
     this.sprite.setFlipX(this.facing === FACING.LEFT);
 
-    if (this.swordActive) {
+    if (this.attackActive) {
       return; // let the attack animation (started in handleAttack) play out
     }
 
@@ -148,20 +148,20 @@ export default class Player {
     }
   }
 
-  // Moves the (invisible) sword hitbox to sit just in front of the player,
+  // Moves the (invisible) attack hitbox to sit just in front of the player,
   // in whichever direction they're facing.
-  updateSwordPosition() {
+  updateAttackPosition() {
     const offset = DISPLAY_SIZE * 0.55;
     let sx = this.x;
     let sy = this.y;
-    let w = SWORD_CONFIG.length;
-    let h = SWORD_CONFIG.thickness;
+    let w = ATTACK_CONFIG.length;
+    let h = ATTACK_CONFIG.thickness;
 
     switch (this.facing) {
       case FACING.LEFT:
-        sx -= offset; w = SWORD_CONFIG.thickness; h = SWORD_CONFIG.length; break;
+        sx -= offset; w = ATTACK_CONFIG.thickness; h = ATTACK_CONFIG.length; break;
       case FACING.RIGHT:
-        sx += offset; w = SWORD_CONFIG.thickness; h = SWORD_CONFIG.length; break;
+        sx += offset; w = ATTACK_CONFIG.thickness; h = ATTACK_CONFIG.length; break;
       case FACING.UP:
         sy -= offset; break;
       case FACING.DOWN:
@@ -169,8 +169,8 @@ export default class Player {
         sy += offset; break;
     }
 
-    this.swordZone.setPosition(sx, sy);
-    this.swordZone.body.setSize(w, h);
+    this.attackZone.setPosition(sx, sy);
+    this.attackZone.body.setSize(w, h);
   }
 
   takeDamage(amount, time, knockbackFrom) {

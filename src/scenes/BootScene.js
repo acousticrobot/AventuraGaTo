@@ -267,7 +267,7 @@ export default class BootScene extends Phaser.Scene {
       });
     });
 
-    // Sword swings. Tag names are "downAtk"/"upAtk"/"sideAtk" — this is the
+    // Attack swings. Tag names are "downAtk"/"upAtk"/"sideAtk" — this is the
     // whole reason tag-based lookup exists: two artists can draw their
     // attack rows with a totally different number of frames (or in a
     // different order) and both still animate correctly, as long as their
@@ -315,7 +315,7 @@ export default class BootScene extends Phaser.Scene {
         });
 
         // Optional: "downAtk"/"upAtk"/"sideAtk" tags, same convention as
-        // the player's sword swings.
+        // the player's attack swings.
         ["down", "up", "side"].forEach((dir) => {
           const tag = this.findTag(meta, `${dir}Atk`);
           if (!tag) return;

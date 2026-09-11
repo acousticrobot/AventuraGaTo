@@ -44,11 +44,11 @@ export const PLAYER_CONFIG = {
 export const PLAYER_WALK_ROWS = { down: 0, up: 1, side: 2 };
 export const PLAYER_ATTACK_ROWS = { down: 3, up: 4, side: 5 };
 
-export const SWORD_CONFIG = {
+export const ATTACK_CONFIG = {
   color: 0xe0e0e0,
   length: 22,
   thickness: 6,
-  activeMs: 160,   // how long the sword hitbox stays out per swing
+  activeMs: 160,   // how long the attack hitbox stays out per swing
   cooldownMs: 250, // time before you can swing again
   damage: 1,
 };

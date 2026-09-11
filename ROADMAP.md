@@ -4,9 +4,6 @@
 
 What order should we add new features and enhancements to the game? Kids get to vote on their favorites and learn about the development cycle.
 
-
-- asset - Seeker
-- enhancement - change sword to punch (default attack), we will add a sword item later
 - Feature - Multiple rooms
 - bugfix - don't allow monsters to leave the screen if there is a walkable tile on the boarder.
 - Feature - User Interface
@@ -62,7 +59,7 @@ Asset Development can continue outside of game development, and requires minimal
 
 - New items can be added to the map that the player can acquire
 - Coins
-- Weapons - sword and range weapons
+- Weapons - attack and range weapons
 - Hearts
 
 #### NPCs
