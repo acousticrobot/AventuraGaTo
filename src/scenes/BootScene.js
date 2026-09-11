@@ -2,7 +2,7 @@ import { TILE_LEGEND } from "../data/mapData.js";
 import {
   ASSET_ROOT, DEFAULT_THEME, FRAME_SIZE,
   PLAYER_CONFIG, PLAYER_WALK_ROWS, PLAYER_ATTACK_ROWS,
-  ENEMY_TYPES, SEEKER_WALK_ROWS,
+  ENEMY_TYPES, ENEMY_WALK_ROWS,
 } from "../data/spriteConfig.js";
 
 // ============================================================================
@@ -198,7 +198,7 @@ export default class BootScene extends Phaser.Scene {
     }
     return this.anims.generateFrameNumbers(key, {
       start: fallbackRow * 4,
-      end: fallbackRow * 4 + 14,
+      end: fallbackRow * 4 + 3,
     });
   }
 
@@ -283,27 +283,35 @@ export default class BootScene extends Phaser.Scene {
     });
   }
 
+  // Builds every enemy's animation(s) straight from ENEMY_TYPES — add a new
+  // entry there (see spriteConfig.js) and it's animated automatically, no
+  // changes needed here. `directional` decides the shape: a directional
+  // enemy (like the seeker) gets a down/up/side walk cycle, exactly like
+  // the player's; a non-directional one (like slime or wiggleworm) gets a
+  // single looping "wobble" clip that plays no matter which way it moves.
   buildEnemyAnimations() {
-    const slimeKey = ENEMY_TYPES.slime.key;
-    const slimeMeta = this.getAtlasData(slimeKey);
-    const slimeTag = this.findTag(slimeMeta, "wobble");
-    this.anims.create({
-      key: "slime_wobble",
-      frames: this.animFrames(slimeKey, slimeMeta, slimeTag, 0),
-      frameRate: ENEMY_TYPES.slime.animFrameRate,
-      repeat: -1,
-    });
+    Object.values(ENEMY_TYPES).forEach((cfg) => {
+      const meta = this.getAtlasData(cfg.key);
 
-    const seekerKey = ENEMY_TYPES.seeker.key;
-    const seekerMeta = this.getAtlasData(seekerKey);
-    ["down", "up", "side"].forEach((dir) => {
-      const tag = this.findTag(seekerMeta, dir);
-      this.anims.create({
-        key: `seeker_walk_${dir}`,
-        frames: this.animFrames(seekerKey, seekerMeta, tag, SEEKER_WALK_ROWS[dir]),
-        frameRate: ENEMY_TYPES.seeker.animFrameRate,
-        repeat: -1,
-      });
+      if (cfg.directional) {
+        ["down", "up", "side"].forEach((dir) => {
+          const tag = this.findTag(meta, dir);
+          this.anims.create({
+            key: `${cfg.key}_walk_${dir}`,
+            frames: this.animFrames(cfg.key, meta, tag, ENEMY_WALK_ROWS[dir]),
+            frameRate: cfg.animFrameRate,
+            repeat: -1,
+          });
+        });
+      } else {
+        const tag = this.findTag(meta, "wobble");
+        this.anims.create({
+          key: `${cfg.key}_wobble`,
+          frames: this.animFrames(cfg.key, meta, tag, 0),
+          frameRate: cfg.animFrameRate,
+          repeat: -1,
+        });
+      }
     });
   }
 }

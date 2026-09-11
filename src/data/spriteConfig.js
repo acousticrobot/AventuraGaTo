@@ -55,8 +55,19 @@ export const SWORD_CONFIG = {
 
 // Each enemy "type" is a little recipe: how it looks, how tough it is, and
 // which behavior script it uses (see Enemy.js for what each behavior does).
+// The property name here (what ENEMY_SPAWNS' `type` refers to in mapData.js)
+// and `key` (the texture/animation name) don't have to match, but keeping
+// them the same avoids mix-ups — and every property name MUST be unique,
+// same as any JS object: two entries with the same name silently collapse
+// into one (the second wins, the first just vanishes) with no warning.
+//
+// Want a whole new kind of enemy? Just add another entry here — BootScene.js
+// loads and animates every entry in this list automatically, and GameScene.js
+// spawns whatever ENEMY_SPAWNS in mapData.js asks for. Nothing else to touch,
+// as long as `behavior` is "wander" or "chase" (see Enemy.js for those) and
+// `directional` correctly says whether it has its own down/up/side art.
 export const ENEMY_TYPES = {
-  slime: {
+  wiggleworm: {
     key: "wiggleworm",
     sheetFile: "wiggleworm.png",
     speed: 30,
@@ -92,8 +103,8 @@ export const ENEMY_TYPES = {
   },
 };
 
-// Fallback row layout of seeker.png — 4 columns x 3 rows (down/up/side),
-// same idea as PLAYER_WALK_ROWS, used only when there's no animation-tag
-// metadata for the loaded sheet. slime.png has no directional rows — it's
-// a single 4-frame row used no matter which way the slime is moving.
-export const SEEKER_WALK_ROWS = { down: 0, up: 1, side: 2 };
+// Fallback row layout for ANY directional enemy sheet (down/up/side, 4
+// columns x 3 rows) — used only when that enemy's sheet doesn't come with
+// its own animation-tag JSON. A non-directional enemy (like slime or
+// wiggleworm) doesn't use this at all; it just has a single "wobble" row.
+export const ENEMY_WALK_ROWS = { down: 0, up: 1, side: 2 };
