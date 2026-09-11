@@ -4,18 +4,15 @@
 
 What order should we add new features and enhancements to the game? Kids get to vote on their favorites and learn about the development cycle.
 
-- asset - Player @done
-- bugfix - load sprite json by frame location @done
+
 - asset - Seeker
-- asset - Ground
-- asset - Path
-- asset - Monsters
+- feature - change hard-coding of monsters to include all monsters defined in ENEMY_TYPES
 - enhancement - change sword to punch (default attack), we will add a sword item later
+- Feature - Multiple rooms
 - bugfix - don't allow monsters to leave the screen if there is a walkable tile on the boarder.
 - testing - confirm monster sprites work with json config
 - testing - confirm 8x8 other size tiles work too
 - testing - what happens with taller tree tiles?
-- Feature - Multiple rooms
 - Feature - User Interface
 - Feature - Game Config Files
 - Feature - Start Screen

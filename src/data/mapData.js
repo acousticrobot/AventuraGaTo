@@ -22,21 +22,21 @@
 export const TILE_SIZE = 32;
 
 export const ROOM_MAP = [
-  "WWWWWW|WWWWWWWWWWWWW",
+  "[EEEED|CEEEEEEEEEEER",
   "W.....|............W",
   "W.TT..|.~~~~...TTT.W",
-  "W.TT..|........TTT.W",
-  "W.....|............W",
-  "W.....||.....WW....W",
-  "W~~~~~~|~~~...WW...W",
-  "W~~~~~~|~~~~.......W",
-  "W~~~~~~|~~~........W",
-  "W......|||||||||||||",
-  "W......||..........W",
-  "W...TTTT|...TTTT...W",
-  "W.......|........SSS",
-  "W.......|.........SS",
-  "WWWWWWWW|WWWWWWWSSSS",
+  "W.TT..|..+.....TTT.W",
+  "W....+|............W",
+  "W+.+++||.....CR....W",
+  "W~~~~~~|~~~...LD...W",
+  "W~~~~~~|~~~~...+...W",
+  "W~~~~~~|~~~...++...U",
+  "W...+++|||||||||||||",
+  "W....++||..........M",
+  "W...TTTT|...TTTT..C]",
+  "W++++...|.....+..SSS",
+  "W..++++.|.++......SS",
+  "LEEEEEED|CEEEEEDSSSS",
 ];
 
 // What each letter means. `name` picks which PNG to draw it with — the
@@ -45,8 +45,18 @@ export const ROOM_MAP = [
 // the same way character sprites do. `solid: true` means the player and
 // enemies cannot walk through it.
 export const TILE_LEGEND = {
-  "W": { name: "wall", solid: true },
-  ".": { name: "grass", solid: false },
+  "C": { name: "wall1", solid: true },
+  "E": { name: "wall2", solid: true },
+  "D": { name: "wall3", solid: true },
+  "U": { name: "wall4", solid: true },
+  "W": { name: "wall5", solid: true },
+  "M": { name: "wall6", solid: true },
+  "[": { name: "wall7", solid: true },
+  "R": { name: "wall8", solid: true },
+  "]": { name: "wall9", solid: true },
+  "L": { name: "wall10", solid: true },
+  ".": { name: "ground", solid: false },
+  "+": { name: "grass", solid: false },
   "|": { name: "path", solid: false },
   "T": { name: "tree", solid: true },
   "~": { name: "water", solid: true },
@@ -60,6 +70,7 @@ export const PLAYER_START = { row: 9, col: 10 };
 // Enemies to place in the room. `type` must match a key in ENEMY_TYPES
 // (see spriteConfig.js). Add or remove entries to change what's in the room!
 export const ENEMY_SPAWNS = [
+  { type: "wiggleworm", row: 2, col: 2 },
   { type: "slime", row: 4, col: 5 },
   { type: "slime", row: 12, col: 15 },
   { type: "seeker", row: 8, col: 4 },

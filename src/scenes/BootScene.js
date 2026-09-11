@@ -23,7 +23,7 @@ import {
 // is missing), that one asset quietly falls back to assets/sprites/default/
 // instead, which is guaranteed to have everything.
 // Set this to "" (or DEFAULT_THEME) to always use the default art.
-const THEME = "tornado";
+const THEME = "default";
 // --------------------------------------------------------------------------
 
 export default class BootScene extends Phaser.Scene {
@@ -198,7 +198,7 @@ export default class BootScene extends Phaser.Scene {
     }
     return this.anims.generateFrameNumbers(key, {
       start: fallbackRow * 4,
-      end: fallbackRow * 4 + 3,
+      end: fallbackRow * 4 + 14,
     });
   }
 
@@ -294,13 +294,13 @@ export default class BootScene extends Phaser.Scene {
       repeat: -1,
     });
 
-    const octoKey = ENEMY_TYPES.seeker.key;
-    const octoMeta = this.getAtlasData(octoKey);
+    const seekerKey = ENEMY_TYPES.seeker.key;
+    const seekerMeta = this.getAtlasData(seekerKey);
     ["down", "up", "side"].forEach((dir) => {
-      const tag = this.findTag(octoMeta, dir);
+      const tag = this.findTag(seekerMeta, dir);
       this.anims.create({
         key: `seeker_walk_${dir}`,
-        frames: this.animFrames(octoKey, octoMeta, tag, SEEKER_WALK_ROWS[dir]),
+        frames: this.animFrames(seekerKey, seekerMeta, tag, SEEKER_WALK_ROWS[dir]),
         frameRate: ENEMY_TYPES.seeker.animFrameRate,
         repeat: -1,
       });

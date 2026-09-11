@@ -57,15 +57,26 @@ export const SWORD_CONFIG = {
 // which behavior script it uses (see Enemy.js for what each behavior does).
 export const ENEMY_TYPES = {
   slime: {
-    key: "slime",
-    sheetFile: "slime.png",
-    speed: 45,
+    key: "wiggleworm",
+    sheetFile: "wiggleworm.png",
+    speed: 30,
     health: 2,
     contactDamage: 1,
     behavior: "wander",       // moves in a random direction, changes every couple seconds
     knockback: 120,
     directional: false,       // one wobble animation, plays regardless of movement direction
     animFrameRate: 6,
+  },
+  slime: {
+    key: "slime",
+    sheetFile: "slimeB.png",
+    speed: 45,
+    health: 2,
+    contactDamage: 1,
+    behavior: "wander",       // moves in a random direction, changes every couple seconds
+    knockback: 120,
+    directional: false,       // one wobble animation, plays regardless of movement direction
+    animFrameRate: 12,
   },
   seeker: {
     key: "seeker",
