@@ -1,4 +1,4 @@
-import { TILE_LEGEND } from "../data/mapData.js";
+import { ROOMS } from "../data/rooms/index.js";
 import {
   ASSET_ROOT, DEFAULT_THEME, FRAME_SIZE,
   PLAYER_CONFIG, PLAYER_WALK_ROWS, PLAYER_ATTACK_ROWS,
@@ -71,10 +71,16 @@ export default class BootScene extends Phaser.Scene {
     });
   }
 
-  // One plain (non-animated) image per distinct tile name in TILE_LEGEND —
-  // e.g. TILE_LEGEND's "W" entry (name: "wall") loads as texture "tile_wall".
+  // One plain (non-animated) image per distinct tile name across every
+  // room's TILE_LEGEND — e.g. a "W" entry (name: "wall") loads as texture
+  // "tile_wall". Every room has its own TILE_LEGEND (see data/rooms/), so
+  // we preload the union of all of them here — whichever room the game
+  // actually starts in, or transitions to later, its tiles are ready.
   queueTileImages() {
-    const tileNames = new Set(Object.values(TILE_LEGEND).map((tile) => tile.name));
+    const tileNames = new Set();
+    Object.values(ROOMS).forEach((room) => {
+      Object.values(room.TILE_LEGEND).forEach((tile) => tileNames.add(tile.name));
+    });
     tileNames.forEach((name) => this.queueTileImage(name));
   }
 

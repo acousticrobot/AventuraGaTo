@@ -1,4 +1,6 @@
-import { ROOM_MAP, TILE_LEGEND, TILE_SIZE, PLAYER_START, ENEMY_SPAWNS } from "../data/mapData.js";
+import { getRoom } from "../data/rooms/index.js";
+import { TILE_SIZE } from "../data/tileSize.js";
+import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT } from "../data/viewport.js";
 import { ENEMY_TYPES, ATTACK_CONFIG, DISPLAY_SCALE } from "../data/spriteConfig.js";
 import Player from "../entities/Player.js";
 import Enemy from "../entities/Enemy.js";
@@ -6,34 +8,62 @@ import Enemy from "../entities/Enemy.js";
 // ============================================================================
 // GAME SCENE
 // ----------------------------------------------------------------------------
-// Builds the room from mapData.js, spawns the player and enemies, wires up
+// Builds a room from data/rooms/, spawns the player and enemies, wires up
 // input/collision, and runs the per-frame update loop. This file is the
 // "glue" — most of the interesting per-character logic lives in
 // entities/Player.js and entities/Enemy.js.
+//
+// ---- Rooms & transitions ------------------------------------------------
+// Which room to build and where the player appears in it are passed in via
+// init(data) as { roomId, startId } — read fresh every time this scene
+// (re)starts, including the very first boot (BootScene.js starts "Game"
+// with no data at all, so the defaults in init() below kick in: room1,
+// "default"). Walking onto an EXIT tile (see buildExits()) calls
+// this.scene.restart({ roomId, startId }) with the destination, which runs
+// init()/create() all over again for the new room.
+//
+// Room state always resets on (re)entry for now — nothing about a room
+// (which enemies are still alive, damage already dealt, etc.) is
+// remembered between visits. That's deliberate: it's the simple version,
+// good enough until the game has things worth persisting (quests,
+// treasure) — see ROADMAP.md.
 // ============================================================================
+
+const EXIT_GRACE_MS = 400; // ignore exits for a moment after arriving, so you
+                           // don't instantly walk back out through the
+                           // doorway you just came in through
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
     super("Game");
   }
 
+  init(data = {}) {
+    this.roomId = data.roomId || "room1";
+    this.startId = data.startId || "default";
+    this.room = getRoom(this.roomId);
+    this.exitsEnabled = false;
+  }
+
   create() {
     this.buildRoom();
     this.buildInput();
 
+    const start = this.room.STARTS[this.startId] || this.room.STARTS.default;
     this.player = new Player(
       this,
-      PLAYER_START.col * TILE_SIZE + TILE_SIZE / 2,
-      PLAYER_START.row * TILE_SIZE + TILE_SIZE / 2
+      start.col * TILE_SIZE + TILE_SIZE / 2,
+      start.row * TILE_SIZE + TILE_SIZE / 2
     );
     this.physics.add.collider(this.player.sprite, this.wallsGroup);
+    this.cameras.main.startFollow(this.player.sprite, true);
 
     this.enemies = [];
     this.enemyGroup = this.physics.add.group();
-    ENEMY_SPAWNS.forEach(({ type, row, col }) => {
+    (this.room.ENEMY_SPAWNS || []).forEach(({ type, row, col }) => {
       const cfg = ENEMY_TYPES[type];
       if (!cfg) {
-        console.warn(`Unknown enemy type "${type}" in ENEMY_SPAWNS — check mapData.js`);
+        console.warn(`Unknown enemy type "${type}" in ${this.roomId}'s ENEMY_SPAWNS — check spriteConfig.js`);
         return;
       }
       const enemy = new Enemy(this, col * TILE_SIZE + TILE_SIZE / 2, row * TILE_SIZE + TILE_SIZE / 2, cfg);
@@ -54,9 +84,14 @@ export default class GameScene extends Phaser.Scene {
       this.onEnemyTouchPlayer(enemySprite);
     });
 
+    this.buildExits();
+
     this.buildHud();
 
     this.gameOver = false;
+
+    // Brief grace period before exits can fire — see EXIT_GRACE_MS above.
+    this.time.delayedCall(EXIT_GRACE_MS, () => { this.exitsEnabled = true; });
   }
 
   // ---- Room construction -------------------------------------------------
@@ -64,11 +99,11 @@ export default class GameScene extends Phaser.Scene {
   buildRoom() {
     this.wallsGroup = this.physics.add.staticGroup();
 
-    ROOM_MAP.forEach((rowStr, row) => {
+    this.room.ROOM_MAP.forEach((rowStr, row) => {
       [...rowStr].forEach((char, col) => {
-        const tile = TILE_LEGEND[char];
+        const tile = this.room.TILE_LEGEND[char];
         if (!tile) {
-          console.warn(`Unknown tile "${char}" at row ${row}, col ${col} — check TILE_LEGEND in mapData.js`);
+          console.warn(`Unknown tile "${char}" at row ${row}, col ${col} in ${this.roomId} — check its TILE_LEGEND`);
           return;
         }
         const x = col * TILE_SIZE + TILE_SIZE / 2;
@@ -83,10 +118,47 @@ export default class GameScene extends Phaser.Scene {
       });
     });
 
-    const width = ROOM_MAP[0].length * TILE_SIZE;
-    const height = ROOM_MAP.length * TILE_SIZE;
-    this.physics.world.setBounds(0, 0, width, height);
-    this.cameras.main.setBounds(0, 0, width, height);
+    const roomWidth = this.room.ROOM_MAP[0].length * TILE_SIZE;
+    const roomHeight = this.room.ROOM_MAP.length * TILE_SIZE;
+    this.physics.world.setBounds(0, 0, roomWidth, roomHeight);
+
+    // The window on screen is always VIEWPORT_WIDTH x VIEWPORT_HEIGHT (fixed
+    // in data/viewport.js), no matter how big or small this particular room
+    // is:
+    //  - a room BIGGER than the viewport: the camera's bounds are just the
+    //    room itself, so startFollow() (in create(), once the player
+    //    exists) scrolls it around, clamped so you never see past the walls.
+    //  - a room SMALLER than the viewport (in either direction): we pad the
+    //    camera's bounds out to the viewport size, centered on the room, so
+    //    there's nowhere for the camera to scroll TO — the room just sits
+    //    centered on screen with a calm margin around it, instead of pinned
+    //    into a corner.
+    const boundsWidth = Math.max(roomWidth, VIEWPORT_WIDTH);
+    const boundsHeight = Math.max(roomHeight, VIEWPORT_HEIGHT);
+    const boundsX = (roomWidth - boundsWidth) / 2;
+    const boundsY = (roomHeight - boundsHeight) / 2;
+    this.cameras.main.setBounds(boundsX, boundsY, boundsWidth, boundsHeight);
+  }
+
+  // ---- Exits (doorways to other rooms) -----------------------------------
+
+  buildExits() {
+    this.exitZones = this.physics.add.staticGroup();
+    (this.room.EXITS || []).forEach((exit) => {
+      const x = exit.col * TILE_SIZE + TILE_SIZE / 2;
+      const y = exit.row * TILE_SIZE + TILE_SIZE / 2;
+      const zone = this.add.zone(x, y, TILE_SIZE, TILE_SIZE);
+      this.physics.add.existing(zone, true); // true = static body
+      zone.exitData = exit;
+      this.exitZones.add(zone);
+    });
+
+    this.physics.add.overlap(this.player.sprite, this.exitZones, (_playerSprite, zone) => {
+      if (!this.exitsEnabled) return;
+      this.exitsEnabled = false; // don't let this fire twice while we restart
+      const { toRoom, toStart } = zone.exitData;
+      this.scene.restart({ roomId: toRoom, startId: toStart });
+    });
   }
 
   // ---- Input --------------------------------------------------------------
@@ -175,7 +247,9 @@ export default class GameScene extends Phaser.Scene {
   update(time, delta) {
     if (this.gameOver) {
       if (Phaser.Input.Keyboard.JustDown(this.restartKey)) {
-        this.scene.restart();
+        // Respawn in the same room, the same way you entered it, rather
+        // than always bouncing back to room1.
+        this.scene.restart({ roomId: this.roomId, startId: this.startId });
       }
       return;
     }

@@ -4,7 +4,7 @@
 
 What order should we add new features and enhancements to the game? Kids get to vote on their favorites and learn about the development cycle.
 
-- Feature - Multiple rooms
+- Feature - Multiple rooms ✅ done
 - bugfix - don't allow monsters to leave the screen if there is a walkable tile on the boarder.
 - Feature - User Interface
 - Feature - Start Screen
@@ -16,17 +16,13 @@ What order should we add new features and enhancements to the game? Kids get to 
 
 ### Asset Development
 
-Asset Development can continue outside of game development, and requires minimal coding, at most additional config added to spriteConfig or madData
+Asset Development can continue outside of game development, and requires minimal coding, at most additional config added to spriteConfig or mapData
 
-- Player: Better Default Player sprite
-- Seeker: Create default Seeker sprite and rename
-- Ground: Create ground (dirt) tiles
-- Path: Create directional path tiles
 - Monsters: more monsters with more animations
 
 ### Features
 
-#### Multiple rooms
+#### Multiple rooms ✅ done
 
 - Allow for multiple rooms
 - Each room can have several exits
@@ -34,6 +30,24 @@ Asset Development can continue outside of game development, and requires minimal
 - Each exit in configured to enter a particular starting point in another room
 - Each room has it's own mapData.js file
 - Probably need to move mapData files into their own directory
+
+**Implementation notes:** rooms live in `src/data/rooms/` (one file per
+room: `ROOM_MAP`, `TILE_LEGEND`, `STARTS`, `ENEMY_SPAWNS`, `EXITS`), listed
+in `rooms/index.js`. `GameScene.init({ roomId, startId })` reads which room
+to build and where to place the player; walking onto an `EXITS` tile calls
+`scene.restart({ roomId, startId })` for the destination, with a brief
+grace period so you don't instantly bounce back through the door you just
+came through. Room state always resets on (re)entry for now (the "always
+reset" option we talked about) — revisit once quests/treasure need rooms
+to remember things.
+
+The game window is a fixed size (`data/viewport.js`, based on room1) no
+matter which room is loaded — a room bigger than that scrolls with the
+camera following the player (clamped to the room's own walls); a room
+smaller than that is centered on screen instead of pinned to a corner.
+Player/tile pixel size never changes between rooms. There are 3 rooms
+right now (room1 → room2 → room3, connected north/south) — room1 has two
+more unused doorway gaps ready for a room 4.
 
 #### User Interface (UI)
 
@@ -69,9 +83,11 @@ Asset Development can continue outside of game development, and requires minimal
 
 #### Enemy Attack Triggers
 
-We only makes wiggleworm_attack, brute_attack_down, etc. available as animations — nothing in Enemy.js triggers one yet. 
-- This feature will have an enemy actually perform an attack (a lunge, a projectile, whatever), 
-- add a new behavior case in Enemy.js deciding when to play it.
+*We only makes wiggleworm_attack, brute_attack_down, etc. available as animations — nothing in Enemy.js triggers one yet.*
+
+- This feature will have an enemy actually perform an attack (a lunge, a projectile, whatever)
+- add a new behavior case in Enemy.js deciding when to play it
+- additional feature: look for idle animation tags in the json, and use when a character is not moving
 
 #### Enhanced Tiles
 

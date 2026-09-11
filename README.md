@@ -65,7 +65,12 @@ AventuraGaTo/
       Player.js           ← movement, facing direction, attack swing, health
       Enemy.js            ← enemy AI ("wander" and "chase" behaviors)
     data/
-      mapData.js          ← ⭐ THE ROOM LAYOUT — most kid-editable file
+      rooms/              ← ⭐ THE ROOMS — most kid-editable files
+        room1.js            (the starting room)
+        room2.js, room3.js  (more rooms — connected by doorways, see below)
+        index.js            lists every room; add a new file here to add a room
+      tileSize.js         ← how many pixels a tile is (shared by every room)
+      viewport.js         ← the game window's fixed size (see "Multiple rooms" below)
       spriteConfig.js      ← ⭐ speed, health, damage, animation frame rates
 ```
 
@@ -76,19 +81,32 @@ to life.
 
 ## Things your kids can change right now, no coding required
 
-Open `src/data/mapData.js` in any text editor.
+Open any room file under `src/data/rooms/` (start with `room1.js`) in any
+text editor.
 
-**Redesign the room.** `ROOM_MAP` is just rows of letters — one letter per
-tile. `W` is wall, `.` is grass, `T` is a tree, `~` is water, `S` is space
-(solid, like a wall — see `TILE_LEGEND` just below `ROOM_MAP` for the full
-list and what each one does). Draw a new room using those letters (every
-row has to stay the same length!), save, and refresh the browser. This is
-basically drawing a picture with a keyboard.
+**Redesign a room.** `ROOM_MAP` is just rows of letters — one letter per
+tile. `W`/wall-letters are solid, `.` is walkable ground, `T` is a tree,
+`~` is water, `S` is space (solid, like a wall — see that room's own
+`TILE_LEGEND` just below `ROOM_MAP` for the full list of what each letter
+in *that* room means — every room has its own legend, so the same letter
+can look different from room to room). Draw a new layout using those
+letters (every row has to stay the same length!), save, and refresh the
+browser. This is basically drawing a picture with a keyboard.
 
 **Move the enemies, or add more.** `ENEMY_SPAWNS` is a list of `{ type, row,
 col }`. Change the `row`/`col` to move one, copy a line to add another, or
-delete a line to remove one. `type` can be `"slime"` or `"seeker"` (defined
-in `spriteConfig.js`).
+delete a line to remove one. `type` can be any key from `ENEMY_TYPES` in
+`spriteConfig.js` (currently `"slime"`, `"wiggleWorm"`, `"slimeSpectre"`, or
+`"seeker"`).
+
+**Add a doorway to another room.** Every room has an `EXITS` list —
+`{ row, col, toRoom, toStart }`. Put one on a tile that's already walkable
+in `ROOM_MAP` (usually a gap in the border wall), and set `toRoom` to
+another room's file name (without `.js`) and `toStart` to a name in that
+room's `STARTS` object — that's where the player appears. Walking onto the
+tile sends the player there. Room1 has two unused border gaps (look for the
+comment near its `EXITS`) — a good spot to hang a room 4 off of! See
+`data/rooms/index.js` for the full room list and how to register a new one.
 
 Then open `src/data/spriteConfig.js`:
 
@@ -174,7 +192,7 @@ no matter which way the slime is drifting (it's round — it doesn't really
 have a "facing side").
 
 These row/column assignments live in `src/data/spriteConfig.js`
-(`PLAYER_WALK_ROWS`, `PLAYER_ATTACK_ROWS`, `SEEKER_WALK_ROWS`) if you ever
+(`PLAYER_WALK_ROWS`, `PLAYER_ATTACK_ROWS`, `ENEMY_WALK_ROWS`) if you ever
 want to reorganize the sheet layout itself.
 
 **Drawing in Aseprite instead? You can name your rows and skip the grid
@@ -210,29 +228,42 @@ can then override it the same way as the built-in enemies.
   `updateBehavior()` method — it's a `switch` statement with `"wander"` and
   `"chase"`. Try adding a `"flee"` behavior that runs away from the player
   instead of chasing.
-- **A new tile type.** Add a letter to `TILE_LEGEND` in `mapData.js` (say,
-  `"R"` for road — walkable, `name: "road"`), draw a matching
-  `assets/sprites/default/tiles/road.png` (16x16), then use `"R"` in
-  `ROOM_MAP`.
+- **A new tile type.** Add a letter to whichever room's `TILE_LEGEND` you're
+  editing (say, `"R"` for road — walkable, `name: "road"`), draw a matching
+  `assets/sprites/default/tiles/road.png` (16x16), then use `"R"` in that
+  room's `ROOM_MAP`. Other rooms won't see it until you add the same letter
+  to their own `TILE_LEGEND` too.
 - **Tune the attack.** `ATTACK_CONFIG` in `spriteConfig.js` controls how long
   the attack stays out and how often you can swing — try making it swing
   faster or hit harder.
 
+## Multiple rooms
+
+The game now has three connected rooms (`src/data/rooms/room1.js`,
+`room2.js`, `room3.js`) — walk off room1's bottom edge to reach room2, then
+room2's bottom edge to reach room3, and back the way you came. See "Things
+your kids can change right now" above for how `EXITS`/`STARTS` work, and
+`data/viewport.js` for how the camera handles rooms bigger or smaller than
+the game window (it scrolls to follow you in a bigger room, or centers a
+smaller one — the player and tiles never change size).
+
+Room state always resets when you (re)enter it — nothing is remembered
+between visits yet. That's fine until the game has things worth
+remembering (see "Items" below).
+
 ## Roadmap — where this could go next
 
-This prototype is deliberately just *one room*. The natural next steps, in
-roughly the order they build on each other:
+The natural next steps, in roughly the order they build on each other:
 
-1. **A second room + screen transitions.** Classic Zelda is really a grid of
-   rooms; walking off one edge of the screen loads the next room. This is
-   the single biggest step toward "it feels like Zelda."
-2. **Items.** A key that opens a locked door (a `'D'` tile that turns into
+1. **Items.** A key that opens a locked door (a `'D'` tile that turns into
    `.` when you have a key), a heart container that raises max health, a
-   pushable block.
-3. **A simple inventory / HUD icon** for whatever item you just picked up.
-4. **A boss room** with a tougher enemy and a locked door that only opens
+   pushable block. This is also when room state stops always-resetting —
+   once picking something up has to stick, rooms need to remember what
+   happened in them.
+2. **A simple inventory / HUD icon** for whatever item you just picked up.
+3. **A boss room** with a tougher enemy and a locked door that only opens
    once it's defeated.
-5. **Sound effects** for the attack swing, taking damage, and defeating an
+4. **Sound effects** for the attack swing, taking damage, and defeating an
    enemy (Phaser's audio support is simple; freesound.org has kid-safe
    effects to start from).
 
