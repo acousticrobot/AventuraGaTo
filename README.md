@@ -165,7 +165,7 @@ placeholder art.
 - Row 0/1/2 = walking, facing down / up / sideways (4 frames each — frame 0
   is also the "standing still" pose)
 - Row 3/4/5 = sword swing, facing down / up / sideways (4 frames each)
-- "Sideways" is always drawn facing **right** — the game automatically
+- "sideways" is always drawn facing **right** — the game automatically
   flips it for left-facing movement, so there's no separate left-facing row
   to draw.
 
@@ -190,10 +190,10 @@ ranges instead of the hardcoded row numbers above — which means your rows
 don't have to be in any particular order, or even be 4 frames each. Name
 your tags exactly (case doesn't matter):
 
-- `player.png` tags: `Down`, `Up`, `Side` (walking), and `DownAtk`, `UpAtk`,
-  `SideAtk` (sword swings)
-- `seeker.png` tags: `Down`, `Up`, `Side`
-- `slime.png` tag: `Wobble`
+- `player.png` tags: `down`, `up`, `side` (walking), and `downAtk`, `upAtk`,
+  `sideAtk` (sword swings)
+- `seeker.png` tags: `down`, `up`, `side`
+- `slime.png` tag: `idle`
 
 Any tag you leave out just falls back to that direction's hardcoded row, so
 you don't need to tag everything at once. This is exactly how `gata/` was

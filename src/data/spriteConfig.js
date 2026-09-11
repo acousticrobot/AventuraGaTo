@@ -67,24 +67,24 @@ export const SWORD_CONFIG = {
 // as long as `behavior` is "wander" or "chase" (see Enemy.js for those) and
 // `directional` correctly says whether it has its own down/up/side art.
 //
-// ---- Animation cycles (walk/wobble, and an optional attack) ----------
-// `animFrameRate` is used for the walk/wobble loop; `attackFrameRate` is
+// ---- Animation cycles (walk/idle, and an optional attack) ----------
+// `animFrameRate` is used for the walk/idle loop; `attackFrameRate` is
 // optional and only matters for an enemy that has an attack tag (see
 // below) — it defaults to `animFrameRate` if you don't set it.
 //
 // A plain PNG with no `<name>.json` next to it always gets the same basic
-// shape: non-directional = one 4-frame "wobble" row, directional = three
+// shape: non-directional = one 4-frame "idle" row, directional = three
 // 4-frame down/up/side rows (see ENEMY_WALK_ROWS). That's a fine default
 // for a quick first sprite, but it can't express anything more than
-// that — a longer wobble, frames in a different order, or an attack cycle.
+// that — a longer idle, frames in a different order, or an attack cycle.
 //
 // For any of that, give the sheet a matching Aseprite JSON export (same
 // idea as gata/player.json — see README.md, "Drawing your own pixel-art
 // sprites"), tagged with whichever of these apply:
-//   - non-directional: "Wobble" (required for anything beyond 4 frames),
+//   - non-directional: "idle" (required for anything beyond 4 frames),
 //     and optionally "Attack"
-//   - directional: "Down"/"Up"/"Side" (required for anything beyond the
-//     basic 4-frame rows), and optionally "DownAtk"/"UpAtk"/"SideAtk"
+//   - directional: "down"/"up"/"side" (required for anything beyond the
+//     basic 4-frame rows), and optionally "downAtk"/"upAtk"/"sideAtk"
 // BootScene.js reads each tag's *actual* frame range from the JSON, so the
 // cycle can be any length and the rows can be in any order — exactly like
 // the player's animations already work. A missing tag just means that one
@@ -92,26 +92,37 @@ export const SWORD_CONFIG = {
 // isn't there at all, no attack animation gets created — nothing plays it
 // until an enemy's `behavior` actually calls for one).
 export const ENEMY_TYPES = {
-  wiggleWorm: {
-    key: "wiggleWorm",
-    sheetFile: "wiggleWorm.png",
-    speed: 30,
+  slime: {
+    key: "slime",
+    sheetFile: "slime.png",
+    speed: 45,
     health: 2,
     contactDamage: 1,
     behavior: "wander",       // moves in a random direction, changes every couple seconds
     knockback: 120,
-    directional: false,       // one wobble animation, plays regardless of movement direction
-    animFrameRate: 6,
+    directional: false,       // one idle animation, plays regardless of movement direction
+    animFrameRate: 8,
+  },
+  wiggleWorm: {
+    key: "wiggleWorm",
+    sheetFile: "wiggleWorm.png",
+    speed: 0,
+    health: 2,
+    contactDamage: 1,
+    behavior: "wander",       // moves in a random direction, changes every couple seconds
+    knockback: 0,
+    directional: false,       // one idle animation, plays regardless of movement direction
+    animFrameRate: 4,
   },
   slimeSpectre: {
     key: "slimeSpectre",
     sheetFile: "slimeSpectre.png",
     speed: 45,
     health: 2,
-    contactDamage: 1,
+    contactDamage: 5,
     behavior: "wander",       // moves in a random direction, changes every couple seconds
     knockback: 120,
-    directional: false,       // one wobble animation, plays regardless of movement direction
+    directional: false,       // one idle animation, plays regardless of movement direction
     animFrameRate: 8,
   },
   seeker: {

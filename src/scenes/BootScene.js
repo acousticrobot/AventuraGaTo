@@ -233,7 +233,7 @@ export default class BootScene extends Phaser.Scene {
 
   // Looks up one named animation tag (Aseprite calls these "frame tags") by
   // name, case-insensitively, e.g. findTag(atlasData, "downAtk") matches a
-  // tag named "DownAtk". Returns null if there's no metadata, or no tag
+  // tag named "downAtk". Returns null if there's no metadata, or no tag
   // with that name — either way, the caller falls back to the hardcoded rows.
   findTag(atlasData, name) {
     const frameTags = atlasData && atlasData.meta && atlasData.meta.frameTags;
@@ -254,7 +254,7 @@ export default class BootScene extends Phaser.Scene {
     const meta = this.getAtlasData(key);
     const DIRS = ["down", "up", "side"];
 
-    // Walking. If the loaded sheet has a tag named "Down"/"Up"/"Side", use
+    // Walking. If the loaded sheet has a tag named "down"/"up"/"side", use
     // its exact frames (however many there are); otherwise fall back to
     // PLAYER_WALK_ROWS' hardcoded 4-frame rows.
     DIRS.forEach((dir) => {
@@ -267,7 +267,7 @@ export default class BootScene extends Phaser.Scene {
       });
     });
 
-    // Sword swings. Tag names are "DownAtk"/"UpAtk"/"SideAtk" — this is the
+    // Sword swings. Tag names are "downAtk"/"upAtk"/"sideAtk" — this is the
     // whole reason tag-based lookup exists: two artists can draw their
     // attack rows with a totally different number of frames (or in a
     // different order) and both still animate correctly, as long as their
@@ -285,14 +285,14 @@ export default class BootScene extends Phaser.Scene {
 
   // Builds every enemy's animation(s) straight from ENEMY_TYPES — add a new
   // entry there (see spriteConfig.js) and it's animated automatically, no
-  // changes needed here. `directional` decides the walk/wobble shape: a
+  // changes needed here. `directional` decides the walk/idle shape: a
   // directional enemy (like the seeker) gets a down/up/side walk cycle,
   // exactly like the player's; a non-directional one (like slime or
-  // wiggleworm) gets a single looping "wobble" clip that plays no matter
+  // wiggleworm) gets a single looping "idle" clip that plays no matter
   // which way it moves.
   //
   // An attack cycle is always OPTIONAL and always tag-driven — there's no
-  // hardcoded fallback row for it (unlike walk/wobble), since there's no
+  // hardcoded fallback row for it (unlike walk/idle), since there's no
   // sensible "default" attack to guess at. It only gets built if the
   // enemy's JSON actually has the tag; otherwise that animation simply
   // doesn't exist yet, same as if the enemy never had one at all. Nothing
@@ -314,7 +314,7 @@ export default class BootScene extends Phaser.Scene {
           });
         });
 
-        // Optional: "DownAtk"/"UpAtk"/"SideAtk" tags, same convention as
+        // Optional: "downAtk"/"upAtk"/"sideAtk" tags, same convention as
         // the player's sword swings.
         ["down", "up", "side"].forEach((dir) => {
           const tag = this.findTag(meta, `${dir}Atk`);
@@ -327,15 +327,15 @@ export default class BootScene extends Phaser.Scene {
           });
         });
       } else {
-        const wobbleTag = this.findTag(meta, "wobble");
+        const idleTag = this.findTag(meta, "idle");
         this.anims.create({
-          key: `${cfg.key}_wobble`,
-          frames: this.animFrames(cfg.key, meta, wobbleTag, 0),
+          key: `${cfg.key}_idle`,
+          frames: this.animFrames(cfg.key, meta, idleTag, 0),
           frameRate: cfg.animFrameRate,
           repeat: -1,
         });
 
-        // Optional: a single "Attack" tag (no direction — same idea as wobble).
+        // Optional: a single "Attack" tag (no direction — same idea as idle).
         const attackTag = this.findTag(meta, "attack");
         if (attackTag) {
           this.anims.create({

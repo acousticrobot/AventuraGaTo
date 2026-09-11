@@ -45,7 +45,7 @@ export default class Enemy {
       this.sprite.play(`${cfg.key}_walk_${this.facingDir}`);
       this.sprite.anims.stop(); // start on a standing frame, not mid-stride
     } else {
-      this.sprite.play(`${cfg.key}_wobble`);
+      this.sprite.play(`${cfg.key}_idle`);
     }
   }
 
