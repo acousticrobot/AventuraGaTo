@@ -6,18 +6,15 @@ What order should we add new features and enhancements to the game? Kids get to 
 
 
 - asset - Seeker
-- feature - change hard-coding of monsters to include all monsters defined in ENEMY_TYPES
 - enhancement - change sword to punch (default attack), we will add a sword item later
 - Feature - Multiple rooms
 - bugfix - don't allow monsters to leave the screen if there is a walkable tile on the boarder.
-- testing - confirm monster sprites work with json config
-- testing - confirm 8x8 other size tiles work too
-- testing - what happens with taller tree tiles?
 - Feature - User Interface
-- Feature - Game Config Files
 - Feature - Start Screen
 - Feature - New Items
 - Feature - NPCs
+- Feature - Enemy Attack Triggers
+- Feature - Game Config Files
 - Feature - Enhanced Tiles
 
 ### Asset Development
@@ -71,7 +68,13 @@ Asset Development can continue outside of game development, and requires minimal
 #### NPCs
 
 - Non combatants that the players can interact with
-- New UI element - dialoge modal
+- New UI element - dialog modal
+
+#### Enemy Attack Triggers
+
+We only makes wiggleworm_attack, brute_attack_down, etc. available as animations — nothing in Enemy.js triggers one yet. 
+- This feature will have an enemy actually perform an attack (a lunge, a projectile, whatever), 
+- add a new behavior case in Enemy.js deciding when to play it.
 
 #### Enhanced Tiles
 

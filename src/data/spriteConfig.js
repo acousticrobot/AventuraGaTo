@@ -66,10 +66,35 @@ export const SWORD_CONFIG = {
 // spawns whatever ENEMY_SPAWNS in mapData.js asks for. Nothing else to touch,
 // as long as `behavior` is "wander" or "chase" (see Enemy.js for those) and
 // `directional` correctly says whether it has its own down/up/side art.
+//
+// ---- Animation cycles (walk/wobble, and an optional attack) ----------
+// `animFrameRate` is used for the walk/wobble loop; `attackFrameRate` is
+// optional and only matters for an enemy that has an attack tag (see
+// below) — it defaults to `animFrameRate` if you don't set it.
+//
+// A plain PNG with no `<name>.json` next to it always gets the same basic
+// shape: non-directional = one 4-frame "wobble" row, directional = three
+// 4-frame down/up/side rows (see ENEMY_WALK_ROWS). That's a fine default
+// for a quick first sprite, but it can't express anything more than
+// that — a longer wobble, frames in a different order, or an attack cycle.
+//
+// For any of that, give the sheet a matching Aseprite JSON export (same
+// idea as gata/player.json — see README.md, "Drawing your own pixel-art
+// sprites"), tagged with whichever of these apply:
+//   - non-directional: "Wobble" (required for anything beyond 4 frames),
+//     and optionally "Attack"
+//   - directional: "Down"/"Up"/"Side" (required for anything beyond the
+//     basic 4-frame rows), and optionally "DownAtk"/"UpAtk"/"SideAtk"
+// BootScene.js reads each tag's *actual* frame range from the JSON, so the
+// cycle can be any length and the rows can be in any order — exactly like
+// the player's animations already work. A missing tag just means that one
+// clip falls back to the plain-grid default (or, for an attack tag that
+// isn't there at all, no attack animation gets created — nothing plays it
+// until an enemy's `behavior` actually calls for one).
 export const ENEMY_TYPES = {
-  wiggleworm: {
-    key: "wiggleworm",
-    sheetFile: "wiggleworm.png",
+  wiggleWorm: {
+    key: "wiggleWorm",
+    sheetFile: "wiggleWorm.png",
     speed: 30,
     health: 2,
     contactDamage: 1,
@@ -78,16 +103,16 @@ export const ENEMY_TYPES = {
     directional: false,       // one wobble animation, plays regardless of movement direction
     animFrameRate: 6,
   },
-  slime: {
-    key: "slime",
-    sheetFile: "slimeB.png",
+  slimeSpectre: {
+    key: "slimeSpectre",
+    sheetFile: "slimeSpectre.png",
     speed: 45,
     health: 2,
     contactDamage: 1,
     behavior: "wander",       // moves in a random direction, changes every couple seconds
     knockback: 120,
     directional: false,       // one wobble animation, plays regardless of movement direction
-    animFrameRate: 12,
+    animFrameRate: 8,
   },
   seeker: {
     key: "seeker",
@@ -103,8 +128,7 @@ export const ENEMY_TYPES = {
   },
 };
 
-// Fallback row layout for ANY directional enemy sheet (down/up/side, 4
-// columns x 3 rows) — used only when that enemy's sheet doesn't come with
-// its own animation-tag JSON. A non-directional enemy (like slime or
-// wiggleworm) doesn't use this at all; it just has a single "wobble" row.
+// Fallback row layout for ANY directional enemy sheet with no JSON tags
+// (down/up/side, 4 columns x 3 rows) — same idea as PLAYER_WALK_ROWS, just
+// shared across every directional enemy instead of one row-set per type.
 export const ENEMY_WALK_ROWS = { down: 0, up: 1, side: 2 };

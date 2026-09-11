@@ -60,7 +60,7 @@ export const PLAYER_START = { row: 9, col: 10 };
 // Enemies to place in the room. `type` must match a key in ENEMY_TYPES
 // (see spriteConfig.js). Add or remove entries to change what's in the room!
 export const ENEMY_SPAWNS = [
-  { type: "slime", row: 4, col: 5 },
-  { type: "slime", row: 12, col: 15 },
+  { type: "slimeSpectre", row: 4, col: 5 },
+  { type: "slimeSpectre", row: 12, col: 15 },
   { type: "seeker", row: 8, col: 4 },
 ];

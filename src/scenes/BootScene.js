@@ -285,13 +285,23 @@ export default class BootScene extends Phaser.Scene {
 
   // Builds every enemy's animation(s) straight from ENEMY_TYPES — add a new
   // entry there (see spriteConfig.js) and it's animated automatically, no
-  // changes needed here. `directional` decides the shape: a directional
-  // enemy (like the seeker) gets a down/up/side walk cycle, exactly like
-  // the player's; a non-directional one (like slime or wiggleworm) gets a
-  // single looping "wobble" clip that plays no matter which way it moves.
+  // changes needed here. `directional` decides the walk/wobble shape: a
+  // directional enemy (like the seeker) gets a down/up/side walk cycle,
+  // exactly like the player's; a non-directional one (like slime or
+  // wiggleworm) gets a single looping "wobble" clip that plays no matter
+  // which way it moves.
+  //
+  // An attack cycle is always OPTIONAL and always tag-driven — there's no
+  // hardcoded fallback row for it (unlike walk/wobble), since there's no
+  // sensible "default" attack to guess at. It only gets built if the
+  // enemy's JSON actually has the tag; otherwise that animation simply
+  // doesn't exist yet, same as if the enemy never had one at all. Nothing
+  // has to play it — this just makes it available for whenever an enemy
+  // behavior wants to trigger one.
   buildEnemyAnimations() {
     Object.values(ENEMY_TYPES).forEach((cfg) => {
       const meta = this.getAtlasData(cfg.key);
+      const attackFrameRate = cfg.attackFrameRate || cfg.animFrameRate;
 
       if (cfg.directional) {
         ["down", "up", "side"].forEach((dir) => {
@@ -303,14 +313,38 @@ export default class BootScene extends Phaser.Scene {
             repeat: -1,
           });
         });
+
+        // Optional: "DownAtk"/"UpAtk"/"SideAtk" tags, same convention as
+        // the player's sword swings.
+        ["down", "up", "side"].forEach((dir) => {
+          const tag = this.findTag(meta, `${dir}Atk`);
+          if (!tag) return;
+          this.anims.create({
+            key: `${cfg.key}_attack_${dir}`,
+            frames: this.animFrames(cfg.key, meta, tag, 0),
+            frameRate: attackFrameRate,
+            repeat: 0,
+          });
+        });
       } else {
-        const tag = this.findTag(meta, "wobble");
+        const wobbleTag = this.findTag(meta, "wobble");
         this.anims.create({
           key: `${cfg.key}_wobble`,
-          frames: this.animFrames(cfg.key, meta, tag, 0),
+          frames: this.animFrames(cfg.key, meta, wobbleTag, 0),
           frameRate: cfg.animFrameRate,
           repeat: -1,
         });
+
+        // Optional: a single "Attack" tag (no direction — same idea as wobble).
+        const attackTag = this.findTag(meta, "attack");
+        if (attackTag) {
+          this.anims.create({
+            key: `${cfg.key}_attack`,
+            frames: this.animFrames(cfg.key, meta, attackTag, 0),
+            frameRate: attackFrameRate,
+            repeat: 0,
+          });
+        }
       }
     });
   }
