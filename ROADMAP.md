@@ -4,7 +4,7 @@
 
 What order should we add new features and enhancements to the game? Kids get to vote on their favorites and learn about the development cycle.
 
-- Feature - Multiple rooms ✅ done
+- Feature - Multiple rooms @done
 - bugfix - don't allow monsters to leave the screen if there is a walkable tile on the boarder.
 - Feature - User Interface
 - Feature - Start Screen
@@ -12,7 +12,7 @@ What order should we add new features and enhancements to the game? Kids get to 
 - Feature - NPCs
 - Feature - Enemy Attack Triggers
 - Feature - Game Config Files
-- Feature - Enhanced Tiles
+- Feature - Enhanced Tilesx
 
 ### Asset Development
 
@@ -22,7 +22,7 @@ Asset Development can continue outside of game development, and requires minimal
 
 ### Features
 
-#### Multiple rooms ✅ done
+#### Multiple rooms @done
 
 - Allow for multiple rooms
 - Each room can have several exits
@@ -94,10 +94,11 @@ more unused doorway gaps ready for a room 4.
 How can we add more advanced tiles to the game for a better aesthetic experience? This may require some research and requirements gathering. 
 
 - What are some ways to improve top-down games tiles?
-- Do we want to add tiles with two surface types? For instance transitional grass/dirt tiles, or grass/water tiles.
-- What about wall tiles that connect with endcaps and right angles?
+- @done What about wall tiles that connect with end-caps and right angles?
 - How about custom tiled areas? For example larger houses or interior details.
+- Do we want to add tiles with two surface types? For instance transitional grass/dirt tiles, or grass/water tiles.
 - Are there better strategies for tile layers and grids that we would want to implement?
+- What would it take to implement a dual grid system, or start using Tiled for mapmaking?
 - What about effect that allow us to reuse some assets? A nighttime overlay for instance
 - What other lighting effects would be easy with Phaser and could enhance our game?
 

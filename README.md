@@ -205,8 +205,9 @@ ranges instead of the hardcoded row numbers above — which means your rows
 don't have to be in any particular order, or even be 4 frames each. Name
 your tags exactly (case doesn't matter):
 
-- `player.png` tags: `down`, `up`, `side` (walking), and `downAtk`, `upAtk`,
-  `sideAtk` (attack)
+- `player.png` tags: `down`, `up`, `side` (walking), `downAtk`, `upAtk`,
+  `sideAtk` (attack), and optionally `downIdle`, `upIdle`, `sideIdle`
+  (standing still — see below)
 - `seeker.png` tags: `down`, `up`, `side`
 - `slime.png` tag: `idle`
 
@@ -215,6 +216,37 @@ you don't need to tag everything at once. This is exactly how `gata/` was
 built — `gata/player.png` was drawn with a completely different row order
 than `default/player.png`, and `gata/player.json` is what tells the game
 which frames are which.
+
+**A bigger canvas for sword swings (32x32 instead of 16x16).** The hero's
+body is still a 16x16 box, but a sword swing is drawn longer than that. To
+give it room, draw every `player.png` frame on a **32x32 canvas** with the
+character in the **center 16x16** (8 pixels of empty room on every side):
+
+1. In Aseprite: **Sprite → Canvas Size…**, set 32 × 32, and keep the
+   character centered (the dialog's anchor grid makes that easy).
+2. Draw the sword swing anywhere on the 32x32 canvas — it can poke out of
+   the middle box in any direction. Every frame (walk, idle, attack) uses
+   the same 32x32 canvas so nothing jumps around when the animation changes.
+3. **File → Export Sprite Sheet**, choose **JSON Data → Hash**, put the tags
+   in the metadata (**Meta → Tags**), and turn **Trim** off. Save the PNG and
+   JSON as `player.png` / `player.json`.
+
+That's all — the game reads the canvas size from `player.json`, so there's
+nothing to configure. (A canvas bigger than 16x16 needs the JSON file; plain
+PNGs with no JSON are always read as a 16x16 grid.) Sheets that are
+16x16 also work.
+
+**Idle animation.** Tag some frames `downIdle`, `upIdle` and/or `sideIdle`
+and the hero plays that loop while standing still (`idleFrameRate` in
+`PLAYER_CONFIG` sets its speed). Any direction without an idle tag simply
+stands on the first frame of its walk cycle, like before.
+
+**The attack hitbox is separate from the drawing.** What actually hurts an
+enemy is an invisible box, not the sword art. If you draw a longer sword,
+make the box match with `ATTACK_CONFIG` in `src/data/spriteConfig.js`:
+`reach` (how far in front of the hero it starts) and `length` / `thickness`
+(its size). The attack animation always plays all the way through, even
+after the hitbox has switched off (`activeMs`).
 
 **A brand new creature from scratch?** Draw a fresh 16x16-per-frame PNG (in
 `default/`, since every asset needs to exist there), point a new entry in

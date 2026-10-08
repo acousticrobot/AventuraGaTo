@@ -175,16 +175,42 @@ export default class BootScene extends Phaser.Scene {
   // row by row). Reading each frame's real x/y/w/h from the JSON sidesteps
   // that mismatch entirely, so buildPlayerAnimations()/buildEnemyAnimations()
   // can play back the actual drawn pixels no matter how the rows line up.
+  //
+  // This is also where we learn each sheet's CANVAS size — how big one
+  // animation frame is. Every frame of a character is drawn on the same
+  // canvas (16x16 for the old sheets, 32x32 for sheets with room for sword
+  // swings that reach outside the 16x16 body), and Aseprite writes that
+  // size into the JSON as each frame's `sourceSize`. We stash it on the
+  // texture (texture.customData.canvas) so Player.js can line up its
+  // collision body with the character in the middle of the canvas.
+  // Sheets with no JSON are plain 16x16 grids.
   registerAtlasFrames(key) {
+    const texture = this.textures.get(key);
+    texture.customData.canvas = { width: FRAME_SIZE, height: FRAME_SIZE };
+
     const atlasData = this.getAtlasData(key);
     if (!atlasData) return; // no JSON for this sheet — plain grid frames are all there is
 
-    const texture = this.textures.get(key);
+    let warnedTrim = false;
     Object.entries(atlasData.frames).forEach(([name, info]) => {
+      if (info.trimmed && !warnedTrim) {
+        warnedTrim = true;
+        console.warn(
+          `AventuraGaTo: ${key}.json was exported with "Trim" turned on — the ` +
+          `frames get cropped to their pixels and will jump around. Turn Trim ` +
+          `off in Aseprite's Export Sprite Sheet dialog.`
+        );
+      }
       if (texture.has(name)) return;
       const { x, y, w, h } = info.frame;
       texture.add(name, 0, x, y, w, h);
     });
+
+    const first = Object.values(atlasData.frames)[0];
+    if (first) {
+      const size = first.sourceSize || { w: first.frame.w, h: first.frame.h };
+      texture.customData.canvas = { width: size.w, height: size.h };
+    }
   }
 
   // A tag's `from`/`to` are indices into the JSON's own frame list, in the
@@ -285,6 +311,21 @@ export default class BootScene extends Phaser.Scene {
         frames: this.animFrames(key, meta, tag, PLAYER_ATTACK_ROWS[dir]),
         frameRate: PLAYER_CONFIG.attackFrameRate,
         repeat: 0,
+      });
+    });
+
+    // Idle (standing still). Optional: tags named "downIdle"/"upIdle"/
+    // "sideIdle". A direction without an idle tag just doesn't get an
+    // animation here — Player.js then falls back to freezing on the first
+    // frame of that direction's walk cycle, same as before idle existed.
+    DIRS.forEach((dir) => {
+      const tag = this.findTag(meta, `${dir}Idle`);
+      if (!tag) return;
+      this.anims.create({
+        key: `player_idle_${dir}`,
+        frames: this.animFrames(key, meta, tag, 0),
+        frameRate: PLAYER_CONFIG.idleFrameRate,
+        repeat: -1,
       });
     });
   }

@@ -21,8 +21,6 @@ export const FACING = { DOWN: "down", UP: "up", LEFT: "left", RIGHT: "right" };
 // flips it horizontally, so both directions map to the same anim/frame set.
 const ANIM_DIR = { down: "down", up: "up", left: "side", right: "side" };
 
-const DISPLAY_SIZE = FRAME_SIZE * DISPLAY_SCALE; // 32 — matches TILE_SIZE
-
 export default class Player {
   constructor(scene, x, y) {
     this.scene = scene;
@@ -31,19 +29,26 @@ export default class Player {
     this.sprite = scene.physics.add.sprite(x, y, this.cfg.key);
     this.sprite.setScale(DISPLAY_SCALE);
     this.sprite.setCollideWorldBounds(true);
-    // Body size is in the sprite's original (un-scaled) 16x16 frame space;
-    // Phaser applies the display scale to it automatically for collisions.
+    // Body size/offset are in the sprite's original (un-scaled) frame space;
+    // Phaser applies the display scale to them automatically for collisions.
+    //
+    // The character is drawn in the middle 16x16 of the sheet's canvas. A
+    // 16x16 canvas has no padding; a 32x32 canvas (room for sword swings that
+    // reach outside the body) has 8px of padding on every side — so the body's
+    // offset just has to skip that padding. The canvas size comes from the
+    // sheet's JSON (BootScene.registerAtlasFrames records it on the texture).
+    const canvas = scene.textures.get(this.cfg.key).customData.canvas
+      || { width: FRAME_SIZE, height: FRAME_SIZE };
+    const padX = (canvas.width - FRAME_SIZE) / 2;
+    const padY = (canvas.height - FRAME_SIZE) / 2;
     this.sprite.body.setSize(10, 13);
-    this.sprite.body.setOffset(3, 3);
+    this.sprite.body.setOffset(3 + padX, 3 + padY);
     this.sprite.owner = this; // let collision callbacks get back to this class
 
     this.facing = FACING.DOWN;
     this.health = this.cfg.maxHealth;
     this.maxHealth = this.cfg.maxHealth;
     this.invulnerableUntil = 0;
-
-    this.sprite.play(`player_walk_${ANIM_DIR[this.facing]}`);
-    this.sprite.anims.stop(); // start on frame 0 (standing still), not mid-walk
 
     // The attack is a rectangle physics body we move around by hand and
     // only "turn on" (enable) while a swing is active.
@@ -53,6 +58,8 @@ export default class Player {
     this.attackActive = false;
     this.attackActiveUntil = 0;
     this.attackReadyAt = 0;
+
+    this.updateAnimation(false); // start standing still, facing down
   }
 
   get x() { return this.sprite.x; }
@@ -126,32 +133,40 @@ export default class Player {
   }
 
   // Picks the right walk/idle/attack clip for the current facing + motion.
-  // An attack in progress always wins; otherwise walk while moving, or hold
-  // on the first frame of the walk cycle (a clean standing pose) when still.
+  // An attack swing always plays out in full (the hitbox is only live for
+  // ATTACK_CONFIG.activeMs, but the drawn swing can last longer — e.g. the
+  // follow-through); otherwise walk while moving, or when still, play the
+  // sheet's idle animation if it has one for this direction. With no idle
+  // tag, hold on the first frame of the walk cycle (a clean standing pose).
   updateAnimation(isMoving) {
     this.sprite.setFlipX(this.facing === FACING.LEFT);
 
-    if (this.attackActive) {
+    const anims = this.sprite.anims;
+    const swinging = anims.isPlaying && anims.currentAnim?.key.startsWith("player_attack_");
+    if (this.attackActive || swinging) {
       return; // let the attack animation (started in handleAttack) play out
     }
 
     const dir = ANIM_DIR[this.facing];
     const walkKey = `player_walk_${dir}`;
+    const idleKey = `player_idle_${dir}`;
 
     if (isMoving) {
       this.sprite.play(walkKey, true); // true = don't restart if already playing
-    } else if (this.sprite.anims.currentAnim?.key !== walkKey || this.sprite.anims.isPlaying) {
-      // Standing still: land on frame 0 of the matching walk cycle (a clean
-      // standing pose) and freeze there, rather than mid-stride.
+    } else if (this.scene.anims.exists(idleKey)) {
+      this.sprite.play(idleKey, true);
+    } else if (anims.currentAnim?.key !== walkKey || anims.isPlaying) {
+      // No idle art: land on frame 0 of the matching walk cycle and freeze
+      // there, rather than mid-stride.
       this.sprite.play(walkKey);
-      this.sprite.anims.stop();
+      anims.stop();
     }
   }
 
   // Moves the (invisible) attack hitbox to sit just in front of the player,
   // in whichever direction they're facing.
   updateAttackPosition() {
-    const offset = DISPLAY_SIZE * 0.55;
+    const offset = ATTACK_CONFIG.reach;
     let sx = this.x;
     let sy = this.y;
     let w = ATTACK_CONFIG.length;

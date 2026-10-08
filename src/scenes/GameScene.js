@@ -183,9 +183,9 @@ export default class GameScene extends Phaser.Scene {
         const label = this.add.text(x, y, `${row},${col}`, {
           fontFamily: "Mojang, monospace",
           fontSize: "9px",
-          color: "#ffffff",
-          stroke: "#000000",
-          strokeThickness: 2,
+          color: "#000000",
+          stroke: "#FFFFFF",
+          strokeThickness: 0,
         }).setDepth(200);
         this.debugTexts.push(label);
       });

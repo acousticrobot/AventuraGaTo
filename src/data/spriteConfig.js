@@ -2,8 +2,12 @@
 // SPRITE CONFIG — tweak how characters look and behave.
 // ============================================================================
 //
-// Characters are drawn from real 16x16 pixel-art sprite sheets, shown on
-// screen at 2x size (32x32) so they match the room's 32px tiles.
+// Characters are drawn from real pixel-art sprite sheets, shown on screen at
+// 2x size so they match the room's 32px tiles. The character's body is always
+// a 16x16 box (FRAME_SIZE), but a sheet's frames can be drawn on a bigger
+// canvas — e.g. 32x32 for the player, so sword swings can reach outside the
+// body. Put the character in the CENTER 16x16 of the bigger canvas and export
+// the JSON (the game reads the canvas size from it). See README.md.
 // BootScene.js loads these sheets and defines the animations; this file
 // just says which *file* each character uses and, for sheets that don't
 // come with their own animation tags, which frames belong to which
@@ -33,6 +37,7 @@ export const PLAYER_CONFIG = {
   maxHealth: 6,          // number of heart pieces (each heart = 2 health)
   invulnerableMs: 900,   // how long you flash/can't be hurt after taking damage
   walkFrameRate: 8,
+  idleFrameRate: 6,      // only used if the sheet has downIdle/upIdle/sideIdle tags
   attackFrameRate: 16,
 };
 
@@ -48,6 +53,9 @@ export const ATTACK_CONFIG = {
   color: 0xe0e0e0,
   length: 22,
   thickness: 6,
+  reach: 17.6,     // how far in front of the player's center the hitbox sits (px).
+                   // Independent of the art — if your sword swing is drawn longer,
+                   // raise this (and `length`) to match what you see.
   activeMs: 160,   // how long the attack hitbox stays out per swing
   cooldownMs: 250, // time before you can swing again
   damage: 1,
@@ -109,8 +117,8 @@ export const ENEMY_TYPES = {
     speed: 0,
     health: 2,
     contactDamage: 1,
-    behavior: "wander",       // moves in a random direction, changes every couple seconds
-    knockback: 0,
+    behavior: "wander",       // speed and knockback 0 keeps in in place, but "wander" could become "idle"
+    knockback: 0,             // if "idle" + direction, it could still rotate, for instance
     directional: false,       // one idle animation, plays regardless of movement direction
     animFrameRate: 4,
   },
