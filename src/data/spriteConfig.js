@@ -127,7 +127,7 @@ export const ENEMY_TYPES = {
     sheetFile: "slimeSpectre.png",
     speed: 45,
     health: 2,
-    contactDamage: 5,
+    contactDamage: 2,
     behavior: "wander",       // moves in a random direction, changes every couple seconds
     knockback: 120,
     directional: false,       // one idle animation, plays regardless of movement direction
@@ -143,6 +143,18 @@ export const ENEMY_TYPES = {
     chaseRange: 160,
     knockback: 140,
     directional: true,        // has its own down/up/side walk animations, like the player
+    animFrameRate: 8,
+  },
+  sawblade: {
+    key: "sawblade",
+    sheetFile: "sawblade.png",
+    speed: 65,
+    health: 5,
+    contactDamage: 2,
+    behavior: "chase",        // notices the player within range and follows them
+    chaseRange: 160,
+    knockback: 140,
+    directional: false,        // has its own down/up/side walk animations, like the player
     animFrameRate: 8,
   },
 };

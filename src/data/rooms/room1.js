@@ -76,7 +76,7 @@ export const STARTS = {
 export const ENEMY_SPAWNS = [
   { type: "wiggleWorm", row: 1, col: 1 },
   { type: "slime", row: 4, col: 5 },
-  { type: "slime", row: 12, col: 15 },
+  { type: "sawblade", row: 12, col: 15 },
   { type: "seeker", row: 8, col: 4 },
 ];
 

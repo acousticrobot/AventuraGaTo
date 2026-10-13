@@ -178,8 +178,8 @@ export default class BootScene extends Phaser.Scene {
   //
   // This is also where we learn each sheet's CANVAS size — how big one
   // animation frame is. Every frame of a character is drawn on the same
-  // canvas (16x16 for the old sheets, 32x32 for sheets with room for sword
-  // swings that reach outside the 16x16 body), and Aseprite writes that
+  // canvas (16x16 for simple sheets, 32x32 for sheets with room for attack
+  // animations that reach outside the 16x16 body), and Aseprite writes that
   // size into the JSON as each frame's `sourceSize`. We stash it on the
   // texture (texture.customData.canvas) so Player.js can line up its
   // collision body with the character in the middle of the canvas.
