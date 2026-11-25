@@ -69,6 +69,7 @@ export const TILE_LEGEND = {
 export const STARTS = {
   default: { row: 9, col: 10 },
   fromRoom2North: { row: 13, col: 8 }, // stepping back in from room2, heading north
+  fromRoom4West: { row: 9, col: 18 },  // stepping back in from room4 (the Tiled room), heading west
 };
 
 // Enemies to place in this room. `type` must match a key in ENEMY_TYPES
@@ -85,9 +86,10 @@ export const ENEMY_SPAWNS = [
 // you're sent to `toStart` in `toRoom`. Make sure `toRoom` actually has a
 // STARTS entry named `toStart`!
 //
-// This room has two more walkable border gaps that aren't wired up to
-// anything yet — the top wall at row 0, col 6, and the right wall at
-// row 9, col 19. They're free doorways waiting for a room 4!
+// The right wall's gap at row 9, col 19 leads to room4 (the Tiled room).
+// There's one more walkable border gap that isn't wired up to anything
+// yet — the top wall at row 0, col 6 — a free doorway waiting for a room 5!
 export const EXITS = [
   { row: 14, col: 8, toRoom: "room2", toStart: "fromRoom1South" },
+  { row: 9, col: 19, toRoom: "room4", toStart: "fromRoom1East" },
 ];

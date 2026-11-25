@@ -5,6 +5,7 @@ import { GAME_CONFIG } from "../data/gameConfig.js";
 import { ENEMY_TYPES, ATTACK_CONFIG, DISPLAY_SCALE } from "../data/spriteConfig.js";
 import Player from "../entities/Player.js";
 import Enemy from "../entities/Enemy.js";
+import { tilesetBaseName, solidTileIds, tiledMapProblems } from "../tiled.js";
 
 // ============================================================================
 // GAME SCENE
@@ -43,11 +44,25 @@ export default class GameScene extends Phaser.Scene {
     this.roomId = data.roomId || "room1";
     this.startId = data.startId || "default";
     this.room = getRoom(this.roomId);
+    // A Tiled room whose map didn't load, or was saved in a way we can't
+    // draw (BootScene already logged exactly what to fix in Tiled): fall
+    // back to room1 so the game still runs instead of crashing here.
+    if (this.room.TILED_MAP && !this.tiledMapUsable(this.room.TILED_MAP)) {
+      console.warn(`Room "${this.roomId}"'s Tiled map can't be used yet — showing room1 instead.`);
+      this.roomId = "room1";
+      this.startId = "default";
+      this.room = getRoom("room1");
+    }
     this.exitsEnabled = false;
     // Carried through scene.restart() (see the exit handler and the
     // death-restart in update()) so toggling the debug overlay sticks
     // across room changes instead of resetting every time.
     this.debugMode = data.debug !== undefined ? data.debug : GAME_CONFIG.debugStart;
+  }
+
+  tiledMapUsable(name) {
+    const entry = this.cache.tilemap.get(`map_${name}`);
+    return !!entry && tiledMapProblems(entry.data, `${name}.tmj`).length === 0;
   }
 
   create() {
@@ -62,7 +77,7 @@ export default class GameScene extends Phaser.Scene {
       start.col * TILE_SIZE + TILE_SIZE / 2,
       start.row * TILE_SIZE + TILE_SIZE / 2
     );
-    this.physics.add.collider(this.player.sprite, this.wallsGroup);
+    this.physics.add.collider(this.player.sprite, this.solids);
     this.cameras.main.startFollow(this.player.sprite, true);
 
     this.enemies = [];
@@ -78,7 +93,7 @@ export default class GameScene extends Phaser.Scene {
       this.enemyGroup.add(enemy.sprite);
     });
 
-    this.physics.add.collider(this.enemyGroup, this.wallsGroup);
+    this.physics.add.collider(this.enemyGroup, this.solids);
     this.physics.add.collider(this.enemyGroup, this.enemyGroup);
 
     // Attack hits an enemy
@@ -103,8 +118,24 @@ export default class GameScene extends Phaser.Scene {
 
   // ---- Room construction -------------------------------------------------
 
+  // A room is built one of two ways — from a ROOM_MAP of letters (the
+  // buildTextRoom() below), or from a map drawn in the Tiled editor
+  // (buildTiledRoom()). Either way it ends up with `this.solids` (what the
+  // player and enemies collide with) and a size in tiles, and everything
+  // after that — physics bounds, camera, exits, debug overlay — is shared.
   buildRoom() {
-    this.wallsGroup = this.physics.add.staticGroup();
+    const { cols, rows } = this.room.TILED_MAP ? this.buildTiledRoom() : this.buildTextRoom();
+    this.roomCols = cols;
+    this.roomRows = rows;
+
+    const roomWidth = cols * TILE_SIZE;
+    const roomHeight = rows * TILE_SIZE;
+    this.physics.world.setBounds(0, 0, roomWidth, roomHeight);
+    this.setupCamera(roomWidth, roomHeight);
+  }
+
+  buildTextRoom() {
+    this.solids = this.physics.add.staticGroup();
 
     this.room.ROOM_MAP.forEach((rowStr, row) => {
       [...rowStr].forEach((char, col) => {
@@ -120,15 +151,59 @@ export default class GameScene extends Phaser.Scene {
         const image = this.add.image(x, y, `tile_${tile.name}`).setScale(DISPLAY_SCALE);
         if (tile.solid) {
           this.physics.add.existing(image, true); // true = static body
-          this.wallsGroup.add(image);
+          this.solids.add(image);
         }
       });
     });
 
-    const roomWidth = this.room.ROOM_MAP[0].length * TILE_SIZE;
-    const roomHeight = this.room.ROOM_MAP.length * TILE_SIZE;
-    this.physics.world.setBounds(0, 0, roomWidth, roomHeight);
+    return { cols: this.room.ROOM_MAP[0].length, rows: this.room.ROOM_MAP.length };
+  }
 
+  // Builds a room from its Tiled map (assets/maps/<TILED_MAP>.tmj, loaded
+  // by BootScene.js). Every tile layer is drawn, bottom to top, in the order
+  // Tiled lists them. Any tile with the custom property `solid` = true
+  // (set on the tile in Tiled's tileset editor) blocks walking, on
+  // whichever layer it appears. Tiles are drawn at 16x16 and scaled up to
+  // TILE_SIZE, same as the characters and the letter-map tiles.
+  buildTiledRoom() {
+    const mapKey = `map_${this.room.TILED_MAP}`;
+    const rawTilesets = this.cache.tilemap.get(mapKey).data.tilesets || [];
+    const map = this.make.tilemap({ key: mapKey });
+    const scale = TILE_SIZE / map.tileWidth;
+    if (!Number.isInteger(scale)) {
+      console.warn(`${this.room.TILED_MAP}.tmj has ${map.tileWidth}px tiles — that doesn't scale evenly to ${TILE_SIZE}px, so it may look blurry. Use 16x16 tiles.`);
+    }
+
+    const tilesets = [];
+    rawTilesets.forEach((raw) => {
+      if (!raw.image) return; // external tileset — BootScene already explained how to fix it
+      const key = `tileset_${tilesetBaseName(raw.image)}`;
+      if (!this.textures.exists(key)) return; // its image failed to load — already reported
+      const source = this.textures.get(key).getSourceImage();
+      if (source.width !== raw.imagewidth || source.height !== raw.imageheight) {
+        console.warn(
+          `${key}.png is ${source.width}x${source.height} but the map expects ${raw.imagewidth}x${raw.imageheight} — ` +
+          `a theme's tileset image must have the same size and tile layout as the default one.`
+        );
+      }
+      const tileset = map.addTilesetImage(raw.name, key);
+      if (tileset) tilesets.push(tileset);
+    });
+
+    const solidIds = solidTileIds(rawTilesets);
+    this.solids = [];
+    map.layers.forEach((layerData) => {
+      const layer = map.createLayer(layerData.name, tilesets, 0, 0);
+      if (!layer) return;
+      layer.setScale(scale);
+      layer.setCollision(solidIds);
+      this.solids.push(layer);
+    });
+
+    return { cols: map.width, rows: map.height };
+  }
+
+  setupCamera(roomWidth, roomHeight) {
     // The window on screen is always VIEWPORT_WIDTH x VIEWPORT_HEIGHT (fixed
     // in data/viewport.js), no matter how big or small this particular room
     // is:
@@ -176,8 +251,8 @@ export default class GameScene extends Phaser.Scene {
   // when the game first boots.
 
   buildDebugOverlay() {
-    this.room.ROOM_MAP.forEach((rowStr, row) => {
-      [...rowStr].forEach((_char, col) => {
+    for (let row = 0; row < this.roomRows; row++) {
+      for (let col = 0; col < this.roomCols; col++) {
         const x = col * TILE_SIZE + 2;
         const y = row * TILE_SIZE + 1;
         const label = this.add.text(x, y, `${row},${col}`, {
@@ -188,8 +263,8 @@ export default class GameScene extends Phaser.Scene {
           strokeThickness: 0,
         }).setDepth(200);
         this.debugTexts.push(label);
-      });
-    });
+      }
+    }
   }
 
   destroyDebugOverlay() {

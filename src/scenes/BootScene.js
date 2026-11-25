@@ -1,6 +1,7 @@
 import { ROOMS } from "../data/rooms/index.js";
+import { tilesetBaseName, tiledMapProblems } from "../tiled.js";
 import {
-  ASSET_ROOT, DEFAULT_THEME, FRAME_SIZE,
+  ASSET_ROOT, MAP_ROOT, DEFAULT_THEME, FRAME_SIZE,
   PLAYER_CONFIG, PLAYER_WALK_ROWS, PLAYER_ATTACK_ROWS,
   ENEMY_TYPES, ENEMY_WALK_ROWS,
 } from "../data/spriteConfig.js";
@@ -43,6 +44,11 @@ export default class BootScene extends Phaser.Scene {
     //   metaKey (e.g. "player__meta") -> characterKey (e.g. "player")
     this._pendingMeta = new Map();
 
+    // Tiled rooms (see queueTiledMaps()): each map's tileset image has to
+    // be queued AFTER its .tmj is read (that's where the image's file name
+    // is), so we remember which ones we've already queued.
+    this._queuedTilesets = new Set();
+
     this.load.on("filecomplete", this.handleFileComplete, this);
     this.load.on("loaderror", this.handleLoadError, this);
 
@@ -52,6 +58,7 @@ export default class BootScene extends Phaser.Scene {
     });
 
     this.queueTileImages();
+    this.queueTiledMaps();
   }
 
   // Queues a character's sprite sheet from THEME (or, if `stage` is passed
@@ -79,6 +86,7 @@ export default class BootScene extends Phaser.Scene {
   queueTileImages() {
     const tileNames = new Set();
     Object.values(ROOMS).forEach((room) => {
+      if (!room.TILE_LEGEND) return; // a Tiled room — see queueTiledMaps()
       Object.values(room.TILE_LEGEND).forEach((tile) => tileNames.add(tile.name));
     });
     tileNames.forEach((name) => this.queueTileImage(name));
@@ -98,16 +106,75 @@ export default class BootScene extends Phaser.Scene {
     this.load.image(key, `${ASSET_ROOT}/${theme}/tiles/${name}.png`);
   }
 
+  // ---- Tiled rooms -------------------------------------------------------
+  // A room file that says `export const TILED_MAP = "room4"` is drawn from
+  // assets/maps/room4.tmj (a map saved from the Tiled editor) instead of a
+  // ROOM_MAP of letters. Loading is two steps, because the map file itself
+  // is what says which tileset image(s) it uses:
+  //   1. queueTiledMaps() loads every Tiled room's .tmj up front.
+  //   2. As each .tmj finishes, handleTiledMapLoaded() queues the tileset
+  //      image(s) it names, using the same theme-then-default fallback as
+  //      every other piece of art (see queueTilesetImage()).
+  queueTiledMaps() {
+    this._pendingMaps = new Map(); // cache key -> map name, for clearer errors
+    Object.entries(ROOMS).forEach(([roomId, room]) => {
+      if (!room.TILED_MAP) return;
+      const key = `map_${room.TILED_MAP}`;
+      if (this._pendingMaps.has(key)) return; // two rooms sharing one map file
+      this._pendingMaps.set(key, { name: room.TILED_MAP, roomId });
+      this.load.tilemapTiledJSON(key, `${MAP_ROOT}/${room.TILED_MAP}.tmj`);
+    });
+  }
+
+  // A .tmj just finished loading: check it's saved the way the game needs,
+  // then queue the tileset image(s) it uses.
+  handleTiledMapLoaded(key) {
+    const { name } = this._pendingMaps.get(key);
+    const data = this.cache.tilemap.get(key).data;
+    const where = `assets/maps/${name}.tmj`;
+
+    tiledMapProblems(data, where).forEach((problem) => {
+      console.error(`AventuraGaTo: ${problem}`);
+    });
+    (data.tilesets || []).forEach((tileset) => {
+      if (tileset.image) this.queueTilesetImage(tilesetBaseName(tileset.image));
+    });
+  }
+
+  // Queues one tileset image — assets/sprites/<theme>/tilesets/<base>.png —
+  // from THEME, falling back to the default theme the same way character
+  // sheets and tile images do. Only the FILE NAME from the map matters
+  // (not its folder), so a theme can restyle a Tiled room just by providing
+  // a same-named PNG with the same tile layout. GameScene looks the result
+  // up as `tileset_<base>`.
+  queueTilesetImage(base, stage) {
+    if (!stage) {
+      if (this._queuedTilesets.has(base)) return;
+      this._queuedTilesets.add(base);
+      stage = THEME && THEME !== DEFAULT_THEME ? "theme" : "default";
+    }
+    const theme = stage === "theme" ? THEME : DEFAULT_THEME;
+    const key = `tileset_${base}`;
+
+    this._pendingSheets.set(key, { sheetFile: `${base}.png`, stage, kind: "tileset", tilesetBase: base });
+    this.load.image(key, `${ASSET_ROOT}/${theme}/tilesets/${base}.png`);
+  }
+
   // A sprite sheet finished loading — see if that same theme folder also
   // has a matching <name>.json (an Aseprite export naming each animation's
   // frames). If it does, buildPlayerAnimations()/buildEnemyAnimations()
   // will use it instead of the hardcoded *_ROWS frame numbers. Plain tile
   // images don't have any of this — they're done as soon as they load.
   handleFileComplete(key, type) {
+    if (type === "tilemapJSON" && this._pendingMaps.has(key)) {
+      this.handleTiledMapLoaded(key);
+      return;
+    }
+
     const pending = this._pendingSheets.get(key);
     if (!pending) return;
 
-    if (pending.kind === "image") {
+    if (pending.kind === "image" || pending.kind === "tileset") {
       this._pendingSheets.delete(key);
       return;
     }
@@ -132,6 +199,8 @@ export default class BootScene extends Phaser.Scene {
         );
         if (pendingSheet.kind === "image") {
           this.queueTileImage(pendingSheet.tileName, "default");
+        } else if (pendingSheet.kind === "tileset") {
+          this.queueTilesetImage(pendingSheet.tilesetBase, "default");
         } else {
           this.queueCharacterSheet(file.key, pendingSheet.sheetFile, "default");
         }
@@ -142,6 +211,15 @@ export default class BootScene extends Phaser.Scene {
         );
         this._pendingSheets.delete(file.key);
       }
+      return;
+    }
+
+    if (this._pendingMaps && this._pendingMaps.has(file.key)) {
+      const { name, roomId } = this._pendingMaps.get(file.key);
+      console.error(
+        `AventuraGaTo: couldn't load assets/maps/${name}.tmj for ${roomId} — ` +
+        `check the file exists and TILED_MAP in the room file matches its name.`
+      );
       return;
     }
 

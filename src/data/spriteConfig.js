@@ -28,6 +28,7 @@ export const FRAME_SIZE = 16;   // every sprite sheet is a grid of 16x16 frames
 export const DISPLAY_SCALE = 2; // shown on screen at 32x32 (matches TILE_SIZE)
 
 export const ASSET_ROOT = "assets/sprites";
+export const MAP_ROOT = "assets/maps"; // Tiled maps (<name>.tmj) — see README.md "Designing rooms in Tiled"
 export const DEFAULT_THEME = "default"; // always has every asset — the ultimate fallback
 
 export const PLAYER_CONFIG = {

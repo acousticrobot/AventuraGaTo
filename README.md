@@ -41,6 +41,9 @@ AventuraGaTo/
   serve.py                ← the local server to run it with (see "Running it" above)
   lib/phaser.min.js       ← the Phaser game engine (vendored so it works offline)
   assets/
+    maps/                 ← ⭐ rooms drawn in the Tiled editor (see "Designing rooms in Tiled")
+      room4.tmj             (the map itself — saved from Tiled)
+      world.tsx             (the tileset's source file: which tiles are solid)
     sprites/
       default/            ← ⭐ the fallback art — always has every asset
         player.png
@@ -48,6 +51,8 @@ AventuraGaTo/
         seeker.png
         tiles/
           grass.png, wall.png, tree.png, water.png, space.png
+        tilesets/
+          world.png          (all the tiles in ONE image — for Tiled rooms)
       gata/               ← ⭐ a THEME — one kid's own art, drawn in Aseprite
         player.png
         player.json          (tells the game which frames are which animation)
@@ -64,10 +69,12 @@ AventuraGaTo/
     entities/
       Player.js           ← movement, facing direction, attack swing, health
       Enemy.js            ← enemy AI ("wander" and "chase" behaviors)
+    tiled.js              ← helpers for reading Tiled maps (which tiles are solid, etc.)
     data/
       rooms/              ← ⭐ THE ROOMS — most kid-editable files
         room1.js            (the starting room)
         room2.js, room3.js  (more rooms — connected by doorways, see below)
+        room4.js            (a room drawn in Tiled instead of with letters)
         index.js            lists every room; add a new file here to add a room
       tileSize.js         ← how many pixels a tile is (shared by every room)
       viewport.js         ← the game window's fixed size (see "Multiple rooms" below)
@@ -91,7 +98,8 @@ tile. `W`/wall-letters are solid, `.` is walkable ground, `T` is a tree,
 in *that* room means — every room has its own legend, so the same letter
 can look different from room to room). Draw a new layout using those
 letters (every row has to stay the same length!), save, and refresh the
-browser. This is basically drawing a picture with a keyboard.
+browser. This is basically drawing a picture with a keyboard. (Prefer painting it?
+See "Designing rooms in Tiled" below.)
 
 **Move the enemies, or add more.** `ENEMY_SPAWNS` is a list of `{ type, row,
 col }`. Change the `row`/`col` to move one, copy a line to add another, or
@@ -104,8 +112,8 @@ delete a line to remove one. `type` can be any key from `ENEMY_TYPES` in
 in `ROOM_MAP` (usually a gap in the border wall), and set `toRoom` to
 another room's file name (without `.js`) and `toStart` to a name in that
 room's `STARTS` object — that's where the player appears. Walking onto the
-tile sends the player there. Room1 has two unused border gaps (look for the
-comment near its `EXITS`) — a good spot to hang a room 4 off of! See
+tile sends the player there. Room1 has one unused border gap (look for the
+comment near its `EXITS`) — a good spot to hang a room 5 off of! See
 `data/rooms/index.js` for the full room list and how to register a new one.
 
 Then open `src/data/spriteConfig.js`:
@@ -119,6 +127,83 @@ animations play — higher is faster/twitchier, lower is slower/floatier).
 **Change how things *look*** — that's real pixel art now, in
 `assets/sprites/`, and it's the best next thing to hand your kids. See the
 next section.
+
+## Designing rooms in Tiled
+
+Typing rooms out as letters is great for quick rooms, but once tiles are
+pieces of a bigger picture (a house, a pond with shoreline), it's much
+nicer to paint them. [Tiled](https://www.mapeditor.org/) is a free map
+editor for exactly that, and the game can load its maps. Both ways of
+making a room work side by side: room1–3 are letter maps, **room4 is
+drawn in Tiled** — open `assets/maps/room4.tmj` in Tiled to see one.
+
+**What lives where.** Tiled draws the *tiles* (the look, and which tiles
+block walking). Everything else about a room — where the player can start,
+the enemies, and the doorways — stays in the room's `.js` file, in the same
+`row`/`col` numbers as always (press **G** in the game to see them). A Tiled
+room's file has `export const TILED_MAP = "room4"` (the map's file name,
+without `.tmj`) in place of `ROOM_MAP`/`TILE_LEGEND`; see `rooms/room4.js`.
+
+**1. Draw all your tiles in one image (Aseprite).** Instead of one PNG per
+tile, put every tile in a single image: a grid of 16x16 squares, with no
+gaps between them (like `assets/sprites/default/tilesets/world.png`, which
+is 4 × 4 tiles). Save it in `assets/sprites/<theme>/tilesets/`. A theme can
+restyle a Tiled room by providing a same-named PNG with the **same size and
+tile layout** as the default one (the game warns if the size is different);
+anything it doesn't provide falls back to `default/`, like all other art.
+
+**2. Set up Tiled once.** *File → New → New Project* (save it anywhere, e.g.
+in the project folder), and add the `assets` folder to it so you can open
+files from the side panel.
+
+**3. Make a map.** *File → New → New Map*, with these settings:
+
+- Orientation **Orthogonal**, **Fixed** size (not "Infinite"), tile size
+  **16 × 16**. (The game scales it up to 32x32 on screen.)
+- After it's created, in *Map → Map Properties*, set **Tile Layer Format**
+  to **CSV** (the game can't read compressed layers).
+- Add the tileset: *New Tileset…* → **Based on Tileset Image**, pick your
+  tileset PNG (16 × 16 tiles, no margin/spacing), and make sure **Embed in
+  map** is ticked. Or, to reuse tiles you already set up, open
+  `assets/maps/world.tsx` (*File → Open*) and, in the map, add it with
+  *Add External Tileset*, then right-click it and choose **Embed Tileset**.
+  (The game needs the tileset *inside* the map file — it can't read
+  separate `.tsx` files.)
+- Name the tile layers whatever you like and stack them in any order:
+  every tile layer is drawn, bottom to top. A common set-up is a `ground`
+  layer, with walls/trees/water on a layer above it.
+
+**4. Mark which tiles block walking.** Open the tileset in Tiled's tileset
+editor (the pencil icon, or double-click it in the Tilesets panel), select
+a tile, and in the *Properties* panel add a custom property named
+**`solid`** of type **bool** and tick it. Do that for every wall, tree and
+water tile once — any tile with `solid` ticked blocks the player and the
+enemies, on whichever layer it's painted. (`world.tsx` already has these
+set for the starter tiles.) Tiles without it, and empty cells, are walkable.
+
+**5. Paint, save, and hook it up.**
+
+- Save the map as **`assets/maps/<name>.tmj`** (*File → Save As*, file type
+  "Tiled JSON files"). This is the same file the game loads — there's no
+  separate export step.
+- Make `rooms/<name>.js` (copy `room4.js`): set `TILED_MAP` to `"<name>"`,
+  and write `STARTS`, `ENEMY_SPAWNS` and `EXITS`. Add the room to
+  `rooms/index.js` like any other room, and give an existing room an `EXITS`
+  entry that leads to it. A doorway is just a walkable gap in the border
+  wall — leave the wall tile out of the layer (or paint over it with
+  something walkable) and put the `EXITS` entry on that row/col.
+- Refresh the browser.
+
+**If something looks wrong,** the browser's console (F12) says what to fix:
+the game checks for the common mistakes (external tileset, compressed layers,
+an infinite map, a tileset image with the wrong size) and tells you how to
+fix each one in Tiled. A map that can't be used shows room1 instead of
+crashing.
+
+**Good to know.** The window size (`viewport.js`) is still measured from
+room1, so room1 needs to stay a letter map for now; every other room can be
+any size, and bigger rooms scroll as usual. Tiled's *object layers* (for
+placing starts, exits and enemies right in the editor) aren't used yet.
 
 ## Drawing your own pixel-art sprites — one folder per kid
 

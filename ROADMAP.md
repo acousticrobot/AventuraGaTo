@@ -2,9 +2,10 @@
 
 ## Ordered Wishlist
 
-What order should we add new features and enhancements to the game? Kids get to vote on their favorites and learn about the development cycle.
-
-- Feature - Multiple rooms @done
+- sprites - add idle animations and test
+- sprites - color tiles
+- sprites - color sprites
+- bugfix - don't reset the heart when moving into a new room
 - bugfix - don't allow monsters to leave the screen if there is a walkable tile on the boarder.
 - Feature - User Interface
 - Feature - Start Screen
@@ -12,7 +13,7 @@ What order should we add new features and enhancements to the game? Kids get to 
 - Feature - NPCs
 - Feature - Enemy Attack Triggers
 - Feature - Game Config Files
-- Feature - Enhanced Tilesx
+- Feature - Enhanced Tiles
 
 ### Asset Development
 
@@ -48,6 +49,46 @@ smaller than that is centered on screen instead of pinned to a corner.
 Player/tile pixel size never changes between rooms. There are 3 rooms
 right now (room1 → room2 → room3, connected north/south) — room1 has two
 more unused doorway gaps ready for a room 4.
+
+#### Use Tiled to design tile maps @done
+
+ - Design a workflow. 
+ - Allow for the use of tilemaps
+
+ Proposed workflow: 
+1. Aseprite 
+ - Working with tilemaps export tiles not as single files, but as tilemaps
+ - should we export json data?
+2. Tiled
+ - working within a single project, we can design tilesets (.tsx files) and tilemaps (.tmx)
+ - Tiled allows for layers, we can leverage this for the location of sprites and objects (this can come later)
+ - Export (what do we export?)
+3. Our Project
+ - Our project can use assets from Tiled in place of the ROOM_MAP
+ - ROOM_MAP can be a default, working exactly as it does now (text based maps, single files for each tile used by filename).
+  
+
+**Implementation notes:** a room file can say `export const TILED_MAP = "room4"`
+instead of `ROOM_MAP`/`TILE_LEGEND`; the map is `assets/maps/room4.tmj`, saved
+straight from Tiled as JSON (no export step) with its tileset **embedded**
+(Phaser can't read external `.tsx` files). Tiles are 16x16 and scaled to
+`TILE_SIZE`; every tile layer is drawn in order, and any tile whose tileset
+entry has the custom property `solid = true` blocks walking. All tiles live in
+one image per tileset, `assets/sprites/<theme>/tilesets/<name>.png`, with the
+usual theme-then-default fallback (a theme's image must match the default's
+size and layout). `STARTS`/`EXITS`/`ENEMY_SPAWNS` stay in the room's `.js` file.
+Maps saved with an external tileset, compressed layers or "infinite" are
+reported in the console and the room falls back to room1. See `src/tiled.js`,
+BootScene's `queueTiledMaps()` and GameScene's `buildTiledRoom()`; the
+workflow is in README.md ("Designing rooms in Tiled"). room4 is the first
+Tiled room (reached from room1's east doorway); `assets/maps/world.tsx` is the
+tileset source with the `solid` flags set.
+
+Not done yet (ideas for later): Tiled object layers for starts/exits/enemy
+spawns (one file per room); loading external `.tsx` tilesets so `solid` flags
+are defined once for every map; letting a Tiled room be the viewport reference
+(`viewport.js` still measures room1's `ROOM_MAP`); a layer property to draw
+tiles above the player (tree canopies, roofs).
 
 #### User Interface (UI)
 
